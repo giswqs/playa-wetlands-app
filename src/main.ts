@@ -16,7 +16,7 @@ import {
   type CustomLayerAdapter,
   type LayerState,
 } from "maplibre-gl-layer-control";
-import { Legend, SearchControl } from "maplibre-gl-components";
+import { Legend, SearchControl, TerrainControl } from "maplibre-gl-components";
 import { StreetViewControl } from "maplibre-gl-streetview";
 // import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
 import { MapboxOverlay } from "@deck.gl/mapbox";
@@ -58,6 +58,13 @@ map.addControl(new maplibregl.FullscreenControl(), "top-right");
 
 // Add globe control to top-right (after navigation)
 map.addControl(new maplibregl.GlobeControl(), "top-right");
+
+// Add terrain control - toggle 3D terrain using free AWS Terrarium tiles
+const terrainControl = new TerrainControl({
+  exaggeration: 1.0,
+  hillshade: true,
+});
+map.addControl(terrainControl, "top-right");
 
 map.on("load", () => {
   // Get all layers from the style
