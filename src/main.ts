@@ -16,7 +16,7 @@ import {
   type CustomLayerAdapter,
   type LayerState,
 } from "maplibre-gl-layer-control";
-import { Legend, SearchControl, TerrainControl } from "maplibre-gl-components";
+import { Colorbar, Legend, SearchControl, TerrainControl } from "maplibre-gl-components";
 import { StreetViewControl } from "maplibre-gl-streetview";
 // import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
 import { MapboxOverlay } from "@deck.gl/mapbox";
@@ -137,6 +137,28 @@ map.on("load", () => {
     minzoom: 11,
     layout: {
       visibility: "visible",
+    },
+  });
+
+  // Add Global Surface Water Occurrence (WMTS)
+  map.addSource("gsw-occurrence", {
+    type: "raster",
+    tiles: [
+      "https://storage.googleapis.com/global-surface-water/tiles2021/occurrence/{z}/{x}/{y}.png",
+    ],
+    tileSize: 256,
+    attribution: "&copy; EC JRC/Google",
+  });
+
+  map.addLayer({
+    id: "JRC Water Occurrence",
+    type: "raster",
+    source: "gsw-occurrence",
+    paint: {
+      "raster-opacity": 1,
+    },
+    layout: {
+      visibility: "none",
     },
   });
 
@@ -594,4 +616,45 @@ map.on("load", () => {
     position: "bottom-left",
   });
   map.addControl(depLegend, "bottom-left");
+
+  const waterOccurrenceColorbar = new Colorbar({
+    label: "Water Occurrence (1984 – 2021)",
+    vmin: 0,
+    vmax: 100,
+    colorStops: [
+      { position: 0, color: "#ffffff" },
+      { position: 0.25, color: "#e0a0e0" },
+      { position: 0.5, color: "#c040c0" },
+      { position: 0.75, color: "#8000bf" },
+      { position: 1, color: "#0000ff" },
+    ],
+    orientation: "horizontal",
+    barLength: 250,
+    barThickness: 18,
+    ticks: {
+      values: [0, 100],
+      format: (v: number) => v === 0 ? "> 0 %\nsometimes water" : "100 %\nalways water",
+    },
+    backgroundColor: "#555555",
+    fontColor: "#ffffff",
+    fontSize: 12,
+    padding: 12,
+    borderRadius: 4,
+    position: "bottom-right",
+    visible: false,
+  });
+  map.addControl(waterOccurrenceColorbar, "bottom-right");
+
+  // Show/hide colorbar based on JRC Water Occurrence layer visibility
+  map.on("data", () => {
+    const layer = map.getLayer("JRC Water Occurrence");
+    if (layer) {
+      const visible = map.getLayoutProperty("JRC Water Occurrence", "visibility") !== "none";
+      if (visible) {
+        waterOccurrenceColorbar.show();
+      } else {
+        waterOccurrenceColorbar.hide();
+      }
+    }
+  });
 });
