@@ -237,22 +237,21 @@ map.on('load', () => {
   // Add Google Satellite basemap
   map.addSource('google-satellite', {
     type: 'raster',
-    tiles: ['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'],
+    tiles: ['https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'],
     tileSize: 256,
     attribution: '&copy; Google',
   });
 
   map.addLayer(
     {
-      id: 'Satellite',
+      id: 'GoogleSatellite',
       type: 'raster',
       source: 'google-satellite',
-      minzoom: 14,
       paint: {
         'raster-opacity': 1,
       },
       layout: {
-        visibility: 'visible'
+        visibility: 'none'
       },
     },
   );
@@ -276,6 +275,63 @@ map.on('load', () => {
       visibility: 'none'
     },
   }); // Insert below countries layer
+
+  // Add PLJV boundaries
+  const pljvBoundary: GeoJSON.FeatureCollection = {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [-106.38806, 43.287453],
+            [-105.816892, 36.943581],
+            [-103.97158, 31.271802],
+            [-101.511165, 30.214278],
+            [-99.006814, 29.833794],
+            [-97.864478, 30.555461],
+            [-97.029695, 32.503102],
+            [-96.634271, 35.20327],
+            [-96.414591, 37.224041],
+            [-96.107039, 40.072029],
+            [-96.107039, 41.634177],
+            [-96.722143, 42.966724],
+            [-98.479582, 43.606499],
+            [-101.115741, 44.271017],
+            [-104.059452, 44.018743],
+            [-106.38806, 43.287453],
+          ]],
+        },
+      },
+    ],
+  };
+
+  map.addSource('pljv-boundaries', {
+    type: 'geojson',
+    data: pljvBoundary,
+  });
+
+  map.addLayer({
+    id: 'Playa Boundary',
+    type: 'fill',
+    source: 'pljv-boundaries',
+    paint: {
+      'fill-color': 'transparent',
+      'fill-outline-color': '#3388ff',
+    },
+  });
+
+  // Fit map to PLJV boundaries
+  const bounds = new maplibregl.LngLatBounds();
+  const geom = pljvBoundary.features[0].geometry;
+  if (geom.type === 'Polygon') {
+    for (const coord of geom.coordinates[0]) {
+      bounds.extend(coord as [number, number]);
+    }
+  }
+  map.fitBounds(bounds, { padding: 20 });
 
   // Add 3D extruded buildings from GeoJSON
   map.addSource('tx-buildings', {
@@ -467,19 +523,19 @@ map.on('load', () => {
     pickable: false,
   });
 
-  map.addControl(lidarControl, "top-right");
+  
 
   lidarControl.on("load", (event) => {
     console.log("Point cloud loaded:", event.pointCloud);
     lidarControl.flyToPointCloud();
   });
 
-  lidarControl.loadPointCloud(
-    "https://apps.opengeos.org/USGS_LPC_TX_CoastalRegion_2018_A18_stratmap18-50cm-2995201a1.copc.laz"
-  );
+  // lidarControl.loadPointCloud(
+  //   "https://apps.opengeos.org/USGS_LPC_TX_CoastalRegion_2018_A18_stratmap18-50cm-2995201a1.copc.laz"
+  // );
 
-  lidarControl.setZOffsetEnabled(true);
-  lidarControl.setZOffset(0);
+  // lidarControl.setZOffsetEnabled(true);
+  // lidarControl.setZOffset(0);
 
   const lidarLayerAdapter = new LidarLayerAdapter(lidarControl);
 
@@ -495,6 +551,7 @@ map.on('load', () => {
 
   map.addControl(layerControl, 'top-right');
 
+  map.addControl(lidarControl, "top-right");
   // Add search control
   const searchControl = new SearchControl({
     placeholder: 'Search for a place...',
