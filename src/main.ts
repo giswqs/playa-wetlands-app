@@ -95,6 +95,29 @@ map.on("load", () => {
     },
   });
 
+  // Add 3DEP Hillshade Multidirectional (WMS)
+  map.addSource("3dep-hillshade", {
+    type: "raster",
+    tiles: [
+      "https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer?service=WMS&request=GetMap&layers=3DEPElevation:Hillshade Multidirectional&styles=&format=image/png&transparent=true&version=1.3.0&crs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}",
+    ],
+    tileSize: 256,
+    attribution: "&copy; USGS 3DEP",
+  });
+
+  map.addLayer({
+    id: "3DEP Hillshade",
+    type: "raster",
+    source: "3dep-hillshade",
+    paint: {
+      "raster-opacity": 1.0,
+    },
+    minzoom: 11,
+    layout: {
+      visibility: "visible",
+    },
+  });
+
   // // Add a raster layer (using MapLibre demo tiles as example)
   // map.addSource('raster-source', {
   //   type: 'raster',
