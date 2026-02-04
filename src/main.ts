@@ -7,14 +7,15 @@ import 'maplibre-gl-layer-control/style.css';
 import 'maplibre-gl-streetview/style.css';
 import 'mapillary-js/dist/mapillary.css';
 import 'maplibre-gl-lidar/style.css';
+import 'maplibre-gl-usgs-lidar/style.css';
 
 import maplibregl from 'maplibre-gl';
 import { LayerControl, type CustomLayerAdapter, type LayerState } from 'maplibre-gl-layer-control';
 import { Legend, SearchControl } from 'maplibre-gl-components';
 import { StreetViewControl } from 'maplibre-gl-streetview';
-import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
+// import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
 import { MapboxOverlay } from '@deck.gl/mapbox';
-
+import { UsgsLidarControl, UsgsLidarLayerAdapter } from 'maplibre-gl-usgs-lidar';
 
 // Get API keys from environment variables (Vite exposes them via import.meta.env)
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
@@ -204,21 +205,21 @@ map.on('load', () => {
     getSymbolType: () => 'circle',
   };
 
-  // Add the LiDAR control (before layer control so adapter can be passed at construction)
-  const lidarControl = new LidarControl({
-    title: "LiDAR Viewer",
-    collapsed: true,
-    pointSize: 2,
-    colorScheme: "elevation",
-    pickable: false,
-  });
+  // // Add the LiDAR control (before layer control so adapter can be passed at construction)
+  // const lidarControl = new LidarControl({
+  //   title: "LiDAR Viewer",
+  //   collapsed: true,
+  //   pointSize: 2,
+  //   colorScheme: "elevation",
+  //   pickable: false,
+  // });
 
 
 
-  lidarControl.on("load", (event) => {
-    console.log("Point cloud loaded:", event.pointCloud);
-    lidarControl.flyToPointCloud();
-  });
+  // lidarControl.on("load", (event) => {
+  //   console.log("Point cloud loaded:", event.pointCloud);
+  //   lidarControl.flyToPointCloud();
+  // });
 
   // lidarControl.loadPointCloud(
   //   "https://apps.opengeos.org/USGS_LPC_TX_CoastalRegion_2018_A18_stratmap18-50cm-2995201a1.copc.laz"
@@ -227,7 +228,23 @@ map.on('load', () => {
   // lidarControl.setZOffsetEnabled(true);
   // lidarControl.setZOffset(0);
 
-  const lidarLayerAdapter = new LidarLayerAdapter(lidarControl);
+  // const lidarLayerAdapter = new LidarLayerAdapter(lidarControl);
+  // Create the USGS LiDAR control (created first for adapter, added to map after layer control)
+  const usgsLidarControl = new UsgsLidarControl({
+    title: 'USGS 3DEP LiDAR',
+    collapsed: true,
+    maxResults: 2500,
+    showFootprints: true,
+    autoZoomToResults: true,
+    lidarControlOptions: {
+      pointSize: 2,
+      colorScheme: 'elevation',
+      copcLoadingMode: 'dynamic',
+    },
+  });
+
+  // Create the USGS LiDAR layer adapter for layer control integration
+  const usgsLidarAdapter = new UsgsLidarLayerAdapter(usgsLidarControl);
 
   // Create the layer control with all adapters passed at construction
   const layerControl = new LayerControl({
@@ -236,12 +253,13 @@ map.on('load', () => {
     panelMinWidth: 240,
     panelMaxWidth: 450,
     basemapStyleUrl: BASE_MAP_STYLE,
-    customLayerAdapters: [deckAdapter, lidarLayerAdapter],
+    customLayerAdapters: [deckAdapter, usgsLidarAdapter],
   });
 
   map.addControl(layerControl, 'top-right');
 
-  map.addControl(lidarControl, "top-right");
+  map.addControl(usgsLidarControl, 'top-right');
+  // map.addControl(lidarControl, "top-right");
   // Add search control
   const searchControl = new SearchControl({
     placeholder: 'Search for a place...',
@@ -275,7 +293,7 @@ map.on('load', () => {
     },
   });
 
-  map.addControl(streetViewControl, 'top-right');
+  map.addControl(streetViewControl, 'top-left');
 
   searchControl.on('resultselect', (event) => {
     console.log('Selected place:', event.result?.name, 'at', event.result?.lng, event.result?.lat);
