@@ -56,6 +56,7 @@ map.on('load', () => {
     return;
   }
 
+  const minzoom = 8;
   // Add Google Satellite basemap
   map.addSource('google-satellite', {
     type: 'raster',
@@ -72,8 +73,9 @@ map.on('load', () => {
       paint: {
         'raster-opacity': 1,
       },
+      minzoom: minzoom,
       layout: {
-        visibility: 'none'
+        visibility: 'visible'
       },
     },
   );
@@ -143,6 +145,9 @@ map.on('load', () => {
       'fill-color': 'transparent',
       'fill-outline-color': '#000000',
     },
+    layout: {
+      visibility: 'none'
+    },
   });
 
   // Add WBDHU8 (Watershed Boundary Dataset HUC8) from PMTiles
@@ -162,27 +167,111 @@ map.on('load', () => {
     },
   });
 
-  // WBDHU8 click popup
-  map.on('click', 'WBDHU8 Boundary', (e) => {
-    if (!e.features || e.features.length === 0) return;
-    const props = e.features[0].properties;
-    const html = `
-      <strong>${props.name || 'N/A'}</strong><br/>
-      HUC8: ${props.huc8 || 'N/A'}<br/>
-      States: ${props.states || 'N/A'}<br/>
-      Area: ${props.areasqkm ? Number(props.areasqkm).toFixed(1) + ' km²' : 'N/A'}
-    `;
+  // Add Depressions 10m from PMTiles
+  map.addSource('depressions-10m', {
+    type: 'vector',
+    url: 'pmtiles://https://data.source.coop/giswqs/playa/depressions_10m.pmtiles',
+  });
+
+  map.addLayer({
+    id: 'Depressions 10m',
+    type: 'fill',
+    source: 'depressions-10m',
+    'source-layer': 'merged_layer',
+    paint: {
+      'fill-color': '#ff7043',
+      'fill-opacity': 0.5,
+    },
+    minzoom: minzoom,
+    layout: {
+      visibility: 'visible',
+    },
+  });
+
+  // Add NWI (National Wetlands Inventory) from PMTiles
+  map.addSource('nwi', {
+    type: 'vector',
+    url: 'pmtiles://https://data.source.coop/giswqs/playa/nwi.pmtiles',
+  });
+
+  map.addLayer({
+    id: 'NWI Wetlands',
+    type: 'fill',
+    source: 'nwi',
+    'source-layer': 'playa_nwi__conus_wetlands__conus_wet_poly',
+    paint: {
+      'fill-color': '#26a69a',
+      'fill-opacity': 0.5,
+    },
+    minzoom: minzoom,
+    layout: {
+      visibility: 'visible',
+    },
+  });
+
+  // Pickable layers with priority: Depressions/NWI first, WBDHU8 as fallback
+  const pickableLayers = ['Depressions 10m', 'NWI Wetlands', 'WBDHU8 Boundary'];
+
+  function buildPopupHtml(layerId: string, props: Record<string, any>): string {
+    switch (layerId) {
+      case 'Depressions 10m':
+        return `
+          <strong>Depression</strong><br/>
+          Area: ${props.area ? Number(props.area).toFixed(1) + ' m²' : 'N/A'}<br/>
+          Volume: ${props.volume ? Number(props.volume).toFixed(1) + ' m³' : 'N/A'}<br/>
+          Avg Depth: ${props['avg-depth'] ? Number(props['avg-depth']).toFixed(2) + ' m' : 'N/A'}<br/>
+          Max Depth: ${props['max-depth'] ? Number(props['max-depth']).toFixed(2) + ' m' : 'N/A'}<br/>
+          Perimeter: ${props.perimeter ? Number(props.perimeter).toFixed(1) + ' m' : 'N/A'}`;
+      case 'NWI Wetlands':
+        return `
+          <strong>NWI Wetland</strong><br/>
+          Type: ${props.WETLAND_TYPE || 'N/A'}<br/>
+          Attribute: ${props.ATTRIBUTE || 'N/A'}<br/>
+          Acres: ${props.ACRES ? Number(props.ACRES).toFixed(2) : 'N/A'}`;
+      case 'WBDHU8 Boundary':
+        return `
+          <strong>${props.name || 'N/A'}</strong><br/>
+          HUC8: ${props.huc8 || 'N/A'}<br/>
+          States: ${props.states || 'N/A'}<br/>
+          Area: ${props.areasqkm ? Number(props.areasqkm).toFixed(1) + ' km²' : 'N/A'}`;
+      default:
+        return '';
+    }
+  }
+
+  map.on('click', (e) => {
+    const depFeatures = map.queryRenderedFeatures(e.point, { layers: ['Depressions 10m'] });
+    const nwiFeatures = map.queryRenderedFeatures(e.point, { layers: ['NWI Wetlands'] });
+
+    const htmlParts: string[] = [];
+    if (depFeatures.length > 0) {
+      htmlParts.push(buildPopupHtml('Depressions 10m', depFeatures[0].properties));
+    }
+    if (nwiFeatures.length > 0) {
+      htmlParts.push(buildPopupHtml('NWI Wetlands', nwiFeatures[0].properties));
+    }
+
+    // Fall back to WBDHU8 only when neither Depressions nor NWI are present
+    if (htmlParts.length === 0) {
+      const wbdFeatures = map.queryRenderedFeatures(e.point, { layers: ['WBDHU8 Boundary'] });
+      if (wbdFeatures.length === 0) return;
+      htmlParts.push(buildPopupHtml('WBDHU8 Boundary', wbdFeatures[0].properties));
+    }
+
     new maplibregl.Popup()
       .setLngLat(e.lngLat)
-      .setHTML(html)
+      .setHTML(htmlParts.join('<hr style="margin:6px 0"/>'))
       .addTo(map);
   });
 
-  // Change cursor on hover
-  map.on('mouseenter', 'WBDHU8 Boundary', () => {
-    map.getCanvas().style.cursor = 'pointer';
-  });
-  map.on('mouseleave', 'WBDHU8 Boundary', () => {
+  map.on('mousemove', (e) => {
+    for (const id of pickableLayers) {
+      const features = map.queryRenderedFeatures(e.point, { layers: [id] });
+      if (features.length > 0) {
+        map.getCanvas().style.cursor = 'pointer';
+        return;
+      }
+    }
     map.getCanvas().style.cursor = '';
   });
 
