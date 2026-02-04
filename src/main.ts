@@ -10,6 +10,7 @@ import 'maplibre-gl-lidar/style.css';
 import 'maplibre-gl-usgs-lidar/style.css';
 
 import maplibregl from 'maplibre-gl';
+import * as pmtiles from 'pmtiles';
 import { LayerControl, type CustomLayerAdapter, type LayerState } from 'maplibre-gl-layer-control';
 import { Legend, SearchControl } from 'maplibre-gl-components';
 import { StreetViewControl } from 'maplibre-gl-streetview';
@@ -25,6 +26,10 @@ const MAPILLARY_TOKEN = import.meta.env.VITE_MAPILLARY_ACCESS_TOKEN || '';
 console.log('Google Street View:', GOOGLE_API_KEY ? 'Configured' : 'Not configured');
 console.log('Mapillary:', MAPILLARY_TOKEN ? 'Configured' : 'Not configured');
 
+
+// Register PMTiles protocol
+const pmtilesProtocol = new pmtiles.Protocol();
+maplibregl.addProtocol('pmtiles', pmtilesProtocol.tile);
 
 const BASE_MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const map = new maplibregl.Map({
@@ -136,8 +141,49 @@ map.on('load', () => {
     source: 'pljv-boundaries',
     paint: {
       'fill-color': 'transparent',
+      'fill-outline-color': '#000000',
+    },
+  });
+
+  // Add WBDHU8 (Watershed Boundary Dataset HUC8) from PMTiles
+  map.addSource('wbdhu8', {
+    type: 'vector',
+    url: 'pmtiles://https://data.source.coop/giswqs/playa/WBDHU8.pmtiles',
+  });
+
+  map.addLayer({
+    id: 'WBDHU8 Boundary',
+    type: 'fill',
+    source: 'wbdhu8',
+    'source-layer': 'wbdhu8_5070__wbdhu8__wbd_national_gpkg__wbdhu8',
+    paint: {
+      'fill-color': 'transparent',
       'fill-outline-color': '#3388ff',
     },
+  });
+
+  // WBDHU8 click popup
+  map.on('click', 'WBDHU8 Boundary', (e) => {
+    if (!e.features || e.features.length === 0) return;
+    const props = e.features[0].properties;
+    const html = `
+      <strong>${props.name || 'N/A'}</strong><br/>
+      HUC8: ${props.huc8 || 'N/A'}<br/>
+      States: ${props.states || 'N/A'}<br/>
+      Area: ${props.areasqkm ? Number(props.areasqkm).toFixed(1) + ' km²' : 'N/A'}
+    `;
+    new maplibregl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(html)
+      .addTo(map);
+  });
+
+  // Change cursor on hover
+  map.on('mouseenter', 'WBDHU8 Boundary', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+  map.on('mouseleave', 'WBDHU8 Boundary', () => {
+    map.getCanvas().style.cursor = '';
   });
 
   // Fit map to PLJV boundaries
