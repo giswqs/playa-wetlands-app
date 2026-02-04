@@ -4,13 +4,29 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import '@geoman-io/maplibre-geoman-free/dist/maplibre-geoman.css';
 import 'maplibre-gl-geo-editor/style.css';
 import 'maplibre-gl-layer-control/style.css';
+import 'maplibre-gl-streetview/style.css';
+import 'mapillary-js/dist/mapillary.css';
+import 'maplibre-gl-lidar/style.css';
 
 import maplibregl from 'maplibre-gl';
 import { Geoman } from '@geoman-io/maplibre-geoman-free';
 import { GeoEditor, type GeoJsonLoadResult, type GeoJsonSaveResult, type AttributeChangeEvent, type DrawMode, type EditMode } from 'maplibre-gl-geo-editor';
 import type { Feature, GeoJsonProperties, Geometry } from 'geojson';
-import { LayerControl } from 'maplibre-gl-layer-control';
+import { LayerControl, type CustomLayerAdapter, type LayerState } from 'maplibre-gl-layer-control';
 import { Legend, SearchControl } from 'maplibre-gl-components';
+import { StreetViewControl } from 'maplibre-gl-streetview';
+import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
+import { MapboxOverlay } from '@deck.gl/mapbox';
+import { ScatterplotLayer } from '@deck.gl/layers';
+
+// Get API keys from environment variables (Vite exposes them via import.meta.env)
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const MAPILLARY_TOKEN = import.meta.env.VITE_MAPILLARY_ACCESS_TOKEN || '';
+
+// Log configuration status
+console.log('Google Street View:', GOOGLE_API_KEY ? 'Configured' : 'Not configured');
+console.log('Mapillary:', MAPILLARY_TOKEN ? 'Configured' : 'Not configured');
+
 
 const BASE_MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const map = new maplibregl.Map({
@@ -18,6 +34,7 @@ const map = new maplibregl.Map({
   style: BASE_MAP_STYLE,
   center: [0, 0],
   zoom: 2,
+  maxPitch: 85,
 });
 
 // Add navigation controls to top-right
@@ -39,7 +56,7 @@ map.on('load', () => {
     // Create GeoEditor control with advanced features
     const geoEditor = new GeoEditor({
       position: 'top-left',
-      collapsed: false,
+      collapsed: true,
       toolbarOrientation: 'vertical',
       columns: 2,
       showLabels: false,
@@ -209,62 +226,6 @@ map.on('load', () => {
     container.addEventListener('gm:geojsonsave', (e) => {
       console.log('GeoJSON saved:', (e as CustomEvent).detail);
     });
-
-    // Add some sample features for demonstration
-    const samplePolygon = {
-      type: 'Feature' as const,
-      id: 'sample-polygon',
-      properties: {
-        name: 'Downtown District',
-        land_use: 'commercial',
-        area_sqm: 45000,
-        description: 'Main commercial district with shops and offices',
-        notes: 'High foot traffic area',
-        color: '#ff6b6b',
-      },
-      geometry: {
-        type: 'Polygon' as const,
-        coordinates: [
-          [
-            [-122.43, 37.79],
-            [-122.43, 37.77],
-            [-122.41, 37.77],
-            [-122.41, 37.79],
-            [-122.43, 37.79],
-          ],
-        ],
-      },
-    };
-
-    const samplePolygon2 = {
-      type: 'Feature' as const,
-      id: 'sample-polygon-2',
-      properties: {
-        name: 'Residential Area',
-        land_use: 'residential',
-        area_sqm: 32000,
-        description: 'Quiet residential neighborhood',
-        color: '#4ecdc4',
-      },
-      geometry: {
-        type: 'Polygon' as const,
-        coordinates: [
-          [
-            [-122.42, 37.78],
-            [-122.42, 37.76],
-            [-122.40, 37.76],
-            [-122.40, 37.78],
-            [-122.42, 37.78],
-          ],
-        ],
-      },
-    };
-
-    // Import sample features
-    geoman.features.importGeoJsonFeature(samplePolygon);
-    geoman.features.importGeoJsonFeature(samplePolygon2);
-
-    console.log('GeoEditor initialized with sample features');
   });
 
   // Get all layers from the style
@@ -296,99 +257,6 @@ map.on('load', () => {
     },
   );
 
-  // Create a simple test GeoJSON (world bounding boxes for a few countries)
-  const geojson: GeoJSON.FeatureCollection = {
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        properties: { name: 'United States' },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [-125, 25], [-125, 49], [-66, 49], [-66, 25], [-125, 25]
-          ]]
-        }
-      },
-      {
-        type: 'Feature',
-        properties: { name: 'Brazil' },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [-73, -33], [-73, 5], [-34, 5], [-34, -33], [-73, -33]
-          ]]
-        }
-      },
-      {
-        type: 'Feature',
-        properties: { name: 'China' },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [73, 18], [73, 53], [135, 53], [135, 18], [73, 18]
-          ]]
-        }
-      },
-      {
-        type: 'Feature',
-        properties: { name: 'Australia' },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [113, -44], [113, -10], [154, -10], [154, -44], [113, -44]
-          ]]
-        }
-      }
-    ]
-  };
-
-  // Add GeoJSON source
-  map.addSource('countries-source', {
-    type: 'geojson',
-    data: geojson
-  });
-
-  // Add fill layer (ensure it's on top of basemap)
-  map.addLayer({
-    id: 'countries-layer',
-    type: 'fill',
-    source: 'countries-source',
-    paint: {
-      'fill-color': '#088',
-      'fill-opacity': 0.5
-    }
-  });
-
-  // Add outline layer (on top of fill)
-  map.addLayer({
-    id: 'countries-outline',
-    type: 'line',
-    source: 'countries-source',
-    paint: {
-      'line-color': '#000',
-      'line-width': 2,
-      'line-opacity': 1.0
-    }
-  });
-
-  // Add circle layer (points at country centers)
-  map.addLayer({
-    id: 'country-points',
-    type: 'circle',
-    source: 'countries-source',
-    paint: {
-      'circle-radius': 8,
-      'circle-color': '#ef4444',
-      'circle-opacity': 0.8,
-      'circle-stroke-width': 2,
-      'circle-stroke-color': '#ffffff',
-      'circle-stroke-opacity': 1
-    }
-  });
-
-
-
   // Add a raster layer (using MapLibre demo tiles as example)
   map.addSource('raster-source', {
     type: 'raster',
@@ -407,22 +275,227 @@ map.on('load', () => {
     layout: {
       visibility: 'none'
     },
-  }, 'countries-layer'); // Insert below countries layer
+  }); // Insert below countries layer
 
-  // Create the layer control with auto-detection
+  // Add 3D extruded buildings from GeoJSON
+  map.addSource('tx-buildings', {
+    type: 'geojson',
+    data: 'https://apps.opengeos.org/tx_buildings.geojson',
+  });
+
+  map.addLayer({
+    id: 'Buildings',
+    type: 'fill-extrusion',
+    source: 'tx-buildings',
+    paint: {
+      'fill-extrusion-color': [
+        'interpolate',
+        ['linear'],
+        ['get', 'height'],
+        0, '#ffffcc',
+        0.5, '#a1dab4',
+        1.0, '#41b6c4',
+        1.5, '#2c7fb8',
+        2.0, '#253494',
+      ],
+      'fill-extrusion-height': ['*', ['get', 'height'], 5],
+      'fill-extrusion-base': 0,
+      'fill-extrusion-opacity': 0.8,
+    },
+  });
+
+  // Show popup on building click
+  map.on('click', 'Buildings', (e) => {
+    if (!e.features || e.features.length === 0) return;
+    const props = e.features[0].properties;
+    const html = `<strong>Building</strong><br/>
+      Height: ${props.height?.toFixed(2)} m<br/>
+      ${props.class ? `Class: ${props.class}<br/>` : ''}
+      ${props.subtype ? `Subtype: ${props.subtype}<br/>` : ''}
+      ${props.num_floors ? `Floors: ${props.num_floors}<br/>` : ''}
+      ${props.roof_shape ? `Roof: ${props.roof_shape}<br/>` : ''}`;
+    new maplibregl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(html)
+      .addTo(map);
+  });
+
+  // Change cursor on hover
+  map.on('mouseenter', 'Buildings', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+  map.on('mouseleave', 'Buildings', () => {
+    map.getCanvas().style.cursor = '';
+  });
+
+  // Add path layer from GeoJSON
+  map.addSource('tx-lines', {
+    type: 'geojson',
+    data: 'https://apps.opengeos.org/tx_lines.geojson',
+  });
+
+  map.addLayer({
+    id: 'Paths',
+    type: 'line',
+    source: 'tx-lines',
+    paint: {
+      'line-color': '#e74c3c',
+      'line-width': 2,
+      'line-opacity': 0.8,
+    },
+  });
+
+  map.on('click', 'Paths', (e) => {
+    if (!e.features || e.features.length === 0) return;
+    const props = e.features[0].properties;
+    const html = `<strong>Path</strong><br/>
+      Type: ${props.path ?? ''}<br/>
+      OSM ID: ${props.osm_id ?? ''}`;
+    new maplibregl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(html)
+      .addTo(map);
+  });
+
+  map.on('mouseenter', 'Paths', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+  map.on('mouseleave', 'Paths', () => {
+    map.getCanvas().style.cursor = '';
+  });
+
+  // Add 3D point layer using deck.gl ScatterplotLayer
+  function heightToColor(h: number): [number, number, number, number] {
+    const t = Math.max(0, Math.min(1, (h - 3.5) / (12.5 - 3.5)));
+    const stops = [
+      [255, 255, 204],  // #ffffcc
+      [161, 218, 180],  // #a1dab4
+      [65, 182, 196],   // #41b6c4
+      [44, 127, 184],   // #2c7fb8
+      [37, 52, 148],    // #253494
+    ];
+    const idx = t * (stops.length - 1);
+    const lo = Math.floor(idx);
+    const hi = Math.min(lo + 1, stops.length - 1);
+    const f = idx - lo;
+    return [
+      Math.round(stops[lo][0] + (stops[hi][0] - stops[lo][0]) * f),
+      Math.round(stops[lo][1] + (stops[hi][1] - stops[lo][1]) * f),
+      Math.round(stops[lo][2] + (stops[hi][2] - stops[lo][2]) * f),
+      220,
+    ];
+  }
+
+  const pointsLayer = new ScatterplotLayer({
+    id: 'Points',
+    data: 'https://apps.opengeos.org/tx_points.geojson',
+    dataTransform: (data: any) => data.features,
+    getPosition: (d: any) => [d.geometry.coordinates[0], d.geometry.coordinates[1], d.properties.height * 5] as [number, number, number],
+    getRadius: 3,
+    getFillColor: (d: any) => heightToColor(d.properties.height),
+    getLineColor: [255, 255, 255],
+    getLineWidth: 1,
+    stroked: true,
+    radiusUnits: 'meters',
+    lineWidthUnits: 'meters',
+    pickable: true,
+    billboard: true,
+    parameters: { depthTest: false },
+  });
+
+  const deckLayers = new Map<string, any>();
+  deckLayers.set('Points', pointsLayer);
+
+  const deckOverlay = new MapboxOverlay({
+    interleaved: true,
+    layers: Array.from(deckLayers.values()),
+    getTooltip: ({ object }: any) => {
+      if (!object) return null;
+      const p = object.properties;
+      return {
+        html: `<strong>Point</strong><br/>
+          Unit: ${p.unit ?? ''}<br/>
+          Floor: ${p.floor ?? ''}<br/>
+          Height: ${p.height?.toFixed(2)} m`,
+        style: {
+          backgroundColor: '#fff',
+          padding: '6px 10px',
+          borderRadius: '4px',
+          fontSize: '13px',
+        },
+      };
+    },
+  });
+
+  map.addControl(deckOverlay);
+
+  // Adapter to register deck.gl layers with the layer control
+  const deckAdapter: CustomLayerAdapter = {
+    type: 'deck',
+    getLayerIds: () => Array.from(deckLayers.keys()),
+    getLayerState: (layerId: string): LayerState | null => {
+      const layer = deckLayers.get(layerId);
+      if (!layer?.props) return null;
+      return {
+        visible: layer.props.visible !== false,
+        opacity: layer.props.opacity ?? 1,
+        name: layerId,
+      };
+    },
+    setVisibility: (layerId: string, visible: boolean) => {
+      const layer = deckLayers.get(layerId);
+      if (!layer?.clone) return;
+      deckLayers.set(layerId, layer.clone({ visible }));
+      deckOverlay.setProps({ layers: Array.from(deckLayers.values()) });
+    },
+    setOpacity: (layerId: string, opacity: number) => {
+      const layer = deckLayers.get(layerId);
+      if (!layer?.clone) return;
+      deckLayers.set(layerId, layer.clone({ opacity }));
+      deckOverlay.setProps({ layers: Array.from(deckLayers.values()) });
+    },
+    getName: (layerId: string) => layerId,
+    getSymbolType: () => 'circle',
+  };
+
+  // Add the LiDAR control (before layer control so adapter can be passed at construction)
+  const lidarControl = new LidarControl({
+    title: "LiDAR Viewer",
+    collapsed: true,
+    pointSize: 2,
+    colorScheme: "elevation",
+    pickable: false,
+  });
+
+  map.addControl(lidarControl, "top-right");
+
+  lidarControl.on("load", (event) => {
+    console.log("Point cloud loaded:", event.pointCloud);
+    lidarControl.flyToPointCloud();
+  });
+
+  lidarControl.loadPointCloud(
+    "https://apps.opengeos.org/USGS_LPC_TX_CoastalRegion_2018_A18_stratmap18-50cm-2995201a1.copc.laz"
+  );
+
+  lidarControl.setZOffsetEnabled(true);
+  lidarControl.setZOffset(0);
+
+  const lidarLayerAdapter = new LidarLayerAdapter(lidarControl);
+
+  // Create the layer control with all adapters passed at construction
   const layerControl = new LayerControl({
-    collapsed: false, // Start expanded to show features
-    // layers: ['countries-layer', 'countries-outline', 'country-points', 'raster-layer'],
+    collapsed: true,
     panelWidth: 350,
     panelMinWidth: 240,
     panelMaxWidth: 450,
-    basemapStyleUrl: BASE_MAP_STYLE
+    basemapStyleUrl: BASE_MAP_STYLE,
+    customLayerAdapters: [deckAdapter, lidarLayerAdapter],
   });
 
-  // Add the control to the map
   map.addControl(layerControl, 'top-right');
 
-  // Add search control - allows searching for places
+  // Add search control
   const searchControl = new SearchControl({
     placeholder: 'Search for a place...',
     flyToZoom: 14,
@@ -432,12 +505,35 @@ map.on('load', () => {
   });
   map.addControl(searchControl, 'top-right');
 
-  // Listen for search result selection
+  let defaultProvider: 'google' | 'mapillary' = 'google';
+  if (!GOOGLE_API_KEY && MAPILLARY_TOKEN) {
+    defaultProvider = 'mapillary';
+  }
+
+  const streetViewControl = new StreetViewControl({
+    title: 'Street View',
+    collapsed: true,
+    panelWidth: 450,
+    panelHeight: 350,
+    defaultProvider: defaultProvider,
+    googleApiKey: GOOGLE_API_KEY,
+    mapillaryAccessToken: MAPILLARY_TOKEN,
+    showMarker: true,
+    clickToView: true,
+    maxSearchRadius: 200,
+    markerOptions: {
+      color: '#ff5722',
+      showDirection: false,
+      directionColor: '#1976d2',
+    },
+  });
+
+  map.addControl(streetViewControl, 'top-right');
+
   searchControl.on('resultselect', (event) => {
     console.log('Selected place:', event.result?.name, 'at', event.result?.lng, event.result?.lat);
   });
 
-  // Add a legend with different shape types
   const shapeLegend = new Legend({
     title: 'Layer Types',
     items: [
@@ -448,10 +544,9 @@ map.on('load', () => {
       { label: 'Cities', color: '#9b59b6', shape: 'circle' },
     ],
     collapsible: true,
-    collapsed: false,
+    collapsed: true,
     width: 180,
     position: 'bottom-left',
   });
   map.addControl(shapeLegend, 'bottom-left');
-
 });
