@@ -95,6 +95,28 @@ map.on("load", () => {
     },
   });
 
+  // Add NAIP False Color Composite (WMS)
+  map.addSource("naip-false-color", {
+    type: "raster",
+    tiles: [
+      "https://imagery.nationalmap.gov/arcgis/services/USGSNAIPImagery/ImageServer/WMSServer?service=WMS&request=GetMap&layers=USGSNAIPImagery:FalseColorComposite&styles=&format=image/png&transparent=true&version=1.3.0&crs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}",
+    ],
+    tileSize: 256,
+    attribution: "&copy; USGS NAIP",
+  });
+
+  map.addLayer({
+    id: "NAIP False Color",
+    type: "raster",
+    source: "naip-false-color",
+    paint: {
+      "raster-opacity": 1,
+    },
+    layout: {
+      visibility: "none",
+    },
+  });
+
   // Add 3DEP Hillshade Multidirectional (WMS)
   map.addSource("3dep-hillshade", {
     type: "raster",
