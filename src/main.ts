@@ -13,7 +13,7 @@ import maplibregl from 'maplibre-gl';
 import { LayerControl, type CustomLayerAdapter, type LayerState } from 'maplibre-gl-layer-control';
 import { Legend, SearchControl } from 'maplibre-gl-components';
 import { StreetViewControl } from 'maplibre-gl-streetview';
-import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
+import { LidarControl } from 'maplibre-gl-lidar';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import { UsgsLidarControl, UsgsLidarLayerAdapter } from 'maplibre-gl-usgs-lidar';
 
