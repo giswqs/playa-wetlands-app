@@ -9,15 +9,12 @@ import 'mapillary-js/dist/mapillary.css';
 import 'maplibre-gl-lidar/style.css';
 
 import maplibregl from 'maplibre-gl';
-import { Geoman } from '@geoman-io/maplibre-geoman-free';
-import { GeoEditor, type GeoJsonLoadResult, type GeoJsonSaveResult, type AttributeChangeEvent, type DrawMode, type EditMode } from 'maplibre-gl-geo-editor';
-import type { Feature, GeoJsonProperties, Geometry } from 'geojson';
 import { LayerControl, type CustomLayerAdapter, type LayerState } from 'maplibre-gl-layer-control';
 import { Legend, SearchControl } from 'maplibre-gl-components';
 import { StreetViewControl } from 'maplibre-gl-streetview';
 import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
 import { MapboxOverlay } from '@deck.gl/mapbox';
-import { ScatterplotLayer } from '@deck.gl/layers';
+
 
 // Get API keys from environment variables (Vite exposes them via import.meta.env)
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
