@@ -244,7 +244,7 @@ map.on('load', () => {
 
   map.addLayer(
     {
-      id: 'GoogleSatellite',
+      id: 'Google Satellite',
       type: 'raster',
       source: 'google-satellite',
       paint: {
