@@ -8,7 +8,7 @@ import "maplibre-gl-streetview/style.css";
 import "mapillary-js/dist/mapillary.css";
 import "maplibre-gl-lidar/style.css";
 import "maplibre-gl-usgs-lidar/style.css";
-import 'maplibre-gl-components/style.css';
+import "maplibre-gl-components/style.css";
 
 import maplibregl from "maplibre-gl";
 import * as pmtiles from "pmtiles";
@@ -17,7 +17,14 @@ import {
   type CustomLayerAdapter,
   type LayerState,
 } from "maplibre-gl-layer-control";
-import { Colorbar, HtmlControl, Legend, SearchControl, TerrainControl, ViewStateControl } from "maplibre-gl-components";
+import {
+  Colorbar,
+  HtmlControl,
+  Legend,
+  SearchControl,
+  TerrainControl,
+  ViewStateControl,
+} from "maplibre-gl-components";
 import { StreetViewControl } from "maplibre-gl-streetview";
 // import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
 import { MapboxOverlay } from "@deck.gl/mapbox";
@@ -33,7 +40,7 @@ const MAPILLARY_TOKEN = import.meta.env.VITE_MAPILLARY_ACCESS_TOKEN || "";
 // Log configuration status
 console.log(
   "Google Street View:",
-  GOOGLE_API_KEY ? "Configured" : "Not configured"
+  GOOGLE_API_KEY ? "Configured" : "Not configured",
 );
 console.log("Mapillary:", MAPILLARY_TOKEN ? "Configured" : "Not configured");
 
@@ -180,21 +187,107 @@ map.on("load", () => {
     },
   });
 
-  // Add Easements from PMTiles
-  map.addSource("easements", {
+  // Add H3 CONUS NWI Count (hexagon grid) from PMTiles
+  map.addSource("h3-conus-nwi-count", {
     type: "vector",
-    url: "pmtiles://https://data.source.coop/giswqs/playa/easements_12_11_2024.pmtiles",
+    url: "pmtiles://https://data.source.coop/giswqs/playa/h3_res5_conus_nwi_count.pmtiles",
   });
 
   map.addLayer({
-    id: "Easements",
-    type: "fill",
-    source: "easements",
-    "source-layer": "easements_12_11_2024",
+    id: "H3 CONUS NWI Count",
+    type: "fill-extrusion",
+    source: "h3-conus-nwi-count",
+    "source-layer": "h3_res5_conus_nwi_count",
     paint: {
-      "fill-color": "#8bc34a",
-      "fill-opacity": 0.5,
+      "fill-extrusion-color": [
+        "interpolate",
+        ["linear"],
+        ["ln", ["+", ["get", "wetland_count"], 1]],
+        0,
+        "#000004",
+        2,
+        "#1b0c41",
+        4,
+        "#4a0c6b",
+        6,
+        "#781c6d",
+        7,
+        "#a52c60",
+        8,
+        "#cf4446",
+        9,
+        "#ed6925",
+        10,
+        "#fb9b06",
+        10.6,
+        "#fcffa4",
+      ],
+      "fill-extrusion-height": [
+        "interpolate",
+        ["linear"],
+        ["get", "wetland_count"],
+        1,
+        100,
+        40000,
+        50000,
+      ],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85,
     },
+    maxzoom: 8,
+    layout: {
+      visibility: "none",
+    },
+  });
+
+  // Add H3 CONUS NWI Acres (hexagon grid) from PMTiles
+  map.addSource("h3-conus-nwi-acres", {
+    type: "vector",
+    url: "pmtiles://https://data.source.coop/giswqs/playa/h3_res5_conus_nwi_acres.pmtiles",
+  });
+
+  map.addLayer({
+    id: "H3 CONUS NWI Acres",
+    type: "fill-extrusion",
+    source: "h3-conus-nwi-acres",
+    "source-layer": "h3_res5_conus_nwi_acres",
+    paint: {
+      "fill-extrusion-color": [
+        "interpolate",
+        ["linear"],
+        ["ln", ["+", ["get", "wetland_acres"], 1]],
+        0,
+        "#000004",
+        2,
+        "#1b0c41",
+        4,
+        "#4a0c6b",
+        5,
+        "#781c6d",
+        6,
+        "#a52c60",
+        7,
+        "#cf4446",
+        8,
+        "#ed6925",
+        9,
+        "#fb9b06",
+        10.3,
+        "#fcffa4",
+      ],
+      "fill-extrusion-height": [
+        "interpolate",
+        ["linear"],
+        ["get", "wetland_acres"],
+        0,
+        100,
+        30000,
+        50000,
+      ],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85,
+    },
+    maxzoom: 8,
     layout: {
       visibility: "none",
     },
@@ -217,22 +310,33 @@ map.on("load", () => {
         "interpolate",
         ["linear"],
         ["ln", ["+", ["get", "wetland_count"], 1]],
-        0, "#000004",
-        2, "#1b0c41",
-        4, "#4a0c6b",
-        6, "#781c6d",
-        7, "#a52c60",
-        8, "#cf4446",
-        9, "#ed6925",
-        10, "#fb9b06",
-        10.6, "#fcffa4",
+        0,
+        "#000004",
+        2,
+        "#1b0c41",
+        4,
+        "#4a0c6b",
+        6,
+        "#781c6d",
+        7,
+        "#a52c60",
+        8,
+        "#cf4446",
+        9,
+        "#ed6925",
+        10,
+        "#fb9b06",
+        10.6,
+        "#fcffa4",
       ],
       "fill-extrusion-height": [
         "interpolate",
         ["linear"],
         ["get", "wetland_count"],
-        1, 100,
-        40000, 50000,
+        1,
+        100,
+        40000,
+        50000,
       ],
       "fill-extrusion-base": 0,
       "fill-extrusion-opacity": 0.85,
@@ -261,22 +365,33 @@ map.on("load", () => {
         "interpolate",
         ["linear"],
         ["ln", ["+", ["get", "wetland_acres"], 1]],
-        0, "#000004",
-        2, "#1b0c41",
-        4, "#4a0c6b",
-        5, "#781c6d",
-        6, "#a52c60",
-        7, "#cf4446",
-        8, "#ed6925",
-        9, "#fb9b06",
-        10.3, "#fcffa4",
+        0,
+        "#000004",
+        2,
+        "#1b0c41",
+        4,
+        "#4a0c6b",
+        5,
+        "#781c6d",
+        6,
+        "#a52c60",
+        7,
+        "#cf4446",
+        8,
+        "#ed6925",
+        9,
+        "#fb9b06",
+        10.3,
+        "#fcffa4",
       ],
       "fill-extrusion-height": [
         "interpolate",
         ["linear"],
         ["get", "wetland_acres"],
-        0, 100,
-        30000, 50000,
+        0,
+        100,
+        30000,
+        50000,
       ],
       "fill-extrusion-base": 0,
       "fill-extrusion-opacity": 0.85,
@@ -303,22 +418,33 @@ map.on("load", () => {
         "interpolate",
         ["linear"],
         ["ln", ["+", ["get", "depression_count"], 1]],
-        0, "#000004",
-        2, "#1b0c41",
-        3, "#4a0c6b",
-        4, "#781c6d",
-        5, "#a52c60",
-        6, "#cf4446",
-        7, "#ed6925",
-        8, "#fb9b06",
-        8.5, "#fcffa4",
+        0,
+        "#000004",
+        2,
+        "#1b0c41",
+        3,
+        "#4a0c6b",
+        4,
+        "#781c6d",
+        5,
+        "#a52c60",
+        6,
+        "#cf4446",
+        7,
+        "#ed6925",
+        8,
+        "#fb9b06",
+        8.5,
+        "#fcffa4",
       ],
       "fill-extrusion-height": [
         "interpolate",
         ["linear"],
         ["get", "depression_count"],
-        1, 100,
-        5050, 50000,
+        1,
+        100,
+        5050,
+        50000,
       ],
       "fill-extrusion-base": 0,
       "fill-extrusion-opacity": 0.85,
@@ -346,28 +472,59 @@ map.on("load", () => {
         "interpolate",
         ["linear"],
         ["ln", ["+", ["get", "depression_acres"], 1]],
-        0, "#000004",
-        2, "#1b0c41",
-        4, "#4a0c6b",
-        5, "#781c6d",
-        6, "#a52c60",
-        7, "#cf4446",
-        8, "#ed6925",
-        9, "#fb9b06",
-        10.4, "#fcffa4",
+        0,
+        "#000004",
+        2,
+        "#1b0c41",
+        4,
+        "#4a0c6b",
+        5,
+        "#781c6d",
+        6,
+        "#a52c60",
+        7,
+        "#cf4446",
+        8,
+        "#ed6925",
+        9,
+        "#fb9b06",
+        10.4,
+        "#fcffa4",
       ],
       "fill-extrusion-height": [
         "interpolate",
         ["linear"],
         ["get", "depression_acres"],
-        0, 100,
-        32000, 50000,
+        0,
+        100,
+        32000,
+        50000,
       ],
       "fill-extrusion-base": 0,
       "fill-extrusion-opacity": 0.85,
     },
     minzoom: 4.5,
     maxzoom: 8,
+    layout: {
+      visibility: "none",
+    },
+  });
+
+  // Add Easements from PMTiles
+  map.addSource("easements", {
+    type: "vector",
+    url: "pmtiles://https://data.source.coop/giswqs/playa/easements_12_11_2024.pmtiles",
+  });
+
+  map.addLayer({
+    id: "Easements",
+    type: "fill",
+    source: "easements",
+    "source-layer": "easements_12_11_2024",
+    paint: {
+      "fill-color": "#8bc34a",
+      "fill-opacity": 0.5,
+    },
     layout: {
       visibility: "none",
     },
@@ -434,7 +591,18 @@ map.on("load", () => {
   });
 
   // Pickable layers with priority: Depressions/NWI first, WBDHU8 as fallback
-  const pickableLayers = ["Depressions 10m", "NWI Wetlands", "Easements", "H3 NWI Count", "H3 NWI Acres", "H3 Depressions Count", "H3 Depressions Acres", "WBDHU8 Boundary"];
+  const pickableLayers = [
+    "Depressions 10m",
+    "NWI Wetlands",
+    "Easements",
+    "H3 NWI Count",
+    "H3 NWI Acres",
+    "H3 CONUS NWI Count",
+    "H3 CONUS NWI Acres",
+    "H3 Depressions Count",
+    "H3 Depressions Acres",
+    "WBDHU8 Boundary",
+  ];
 
   function buildPopupHtml(layerId: string, props: Record<string, any>): string {
     switch (layerId) {
@@ -482,6 +650,14 @@ map.on("load", () => {
         return `
           <strong>H3 Cell (Res 5)</strong><br/>
           NWI Wetland Acres: ${props.wetland_acres ? Number(props.wetland_acres).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "N/A"}`;
+      case "H3 CONUS NWI Count":
+        return `
+          <strong>H3 CONUS Cell (Res 5)</strong><br/>
+          NWI Wetland Count: ${props.wetland_count ? Number(props.wetland_count).toLocaleString() : "N/A"}`;
+      case "H3 CONUS NWI Acres":
+        return `
+          <strong>H3 CONUS Cell (Res 5)</strong><br/>
+          NWI Wetland Acres: ${props.wetland_acres ? Number(props.wetland_acres).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "N/A"}`;
       case "H3 Depressions Count":
         return `
           <strong>H3 Cell (Res 5)</strong><br/>
@@ -520,7 +696,7 @@ map.on("load", () => {
     const htmlParts: string[] = [];
     if (depFeatures.length > 0) {
       htmlParts.push(
-        buildPopupHtml("Depressions 10m", depFeatures[0].properties)
+        buildPopupHtml("Depressions 10m", depFeatures[0].properties),
       );
     }
     if (nwiFeatures.length > 0) {
@@ -536,19 +712,53 @@ map.on("load", () => {
       layers: ["H3 NWI Acres"],
     });
     if (h3AcresFeatures.length > 0) {
-      htmlParts.push(buildPopupHtml("H3 NWI Acres", h3AcresFeatures[0].properties));
+      htmlParts.push(
+        buildPopupHtml("H3 NWI Acres", h3AcresFeatures[0].properties),
+      );
+    }
+    const h3ConusCountFeatures = map.queryRenderedFeatures(e.point, {
+      layers: ["H3 CONUS NWI Count"],
+    });
+    if (h3ConusCountFeatures.length > 0) {
+      htmlParts.push(
+        buildPopupHtml(
+          "H3 CONUS NWI Count",
+          h3ConusCountFeatures[0].properties,
+        ),
+      );
+    }
+    const h3ConusAcresFeatures = map.queryRenderedFeatures(e.point, {
+      layers: ["H3 CONUS NWI Acres"],
+    });
+    if (h3ConusAcresFeatures.length > 0) {
+      htmlParts.push(
+        buildPopupHtml(
+          "H3 CONUS NWI Acres",
+          h3ConusAcresFeatures[0].properties,
+        ),
+      );
     }
     const h3DepCountFeatures = map.queryRenderedFeatures(e.point, {
       layers: ["H3 Depressions Count"],
     });
     if (h3DepCountFeatures.length > 0) {
-      htmlParts.push(buildPopupHtml("H3 Depressions Count", h3DepCountFeatures[0].properties));
+      htmlParts.push(
+        buildPopupHtml(
+          "H3 Depressions Count",
+          h3DepCountFeatures[0].properties,
+        ),
+      );
     }
     const h3DepAcresFeatures = map.queryRenderedFeatures(e.point, {
       layers: ["H3 Depressions Acres"],
     });
     if (h3DepAcresFeatures.length > 0) {
-      htmlParts.push(buildPopupHtml("H3 Depressions Acres", h3DepAcresFeatures[0].properties));
+      htmlParts.push(
+        buildPopupHtml(
+          "H3 Depressions Acres",
+          h3DepAcresFeatures[0].properties,
+        ),
+      );
     }
 
     // Fall back to WBDHU8 only when no higher-priority features are present
@@ -558,7 +768,7 @@ map.on("load", () => {
       });
       if (wbdFeatures.length === 0) return;
       htmlParts.push(
-        buildPopupHtml("WBDHU8 Boundary", wbdFeatures[0].properties)
+        buildPopupHtml("WBDHU8 Boundary", wbdFeatures[0].properties),
       );
     }
 
@@ -578,7 +788,6 @@ map.on("load", () => {
     }
     map.getCanvas().style.cursor = "";
   });
-
 
   const deckLayers = new Map<string, any>();
   // deckLayers.set('Points', pointsLayer);
@@ -730,12 +939,12 @@ map.on("load", () => {
     enableBBox: true,
     precision: 4,
   });
-  map.addControl(viewStateControl, 'top-left');
+  map.addControl(viewStateControl, "top-left");
 
   // Listen for bounding box draw events
-  viewStateControl.on('bboxdraw', (event) => {
+  viewStateControl.on("bboxdraw", (event) => {
     if (event.bbox) {
-      console.log('Drawn bounding box:', event.bbox);
+      console.log("Drawn bounding box:", event.bbox);
     }
   });
 
@@ -745,7 +954,7 @@ map.on("load", () => {
       event.result?.name,
       "at",
       event.result?.lng,
-      event.result?.lat
+      event.result?.lat,
     );
   });
 
@@ -816,7 +1025,8 @@ map.on("load", () => {
     barThickness: 18,
     ticks: {
       values: [0, 100],
-      format: (v: number) => v === 0 ? "> 0 %\nsometimes water" : "100 %\nalways water",
+      format: (v: number) =>
+        v === 0 ? "> 0 %\nsometimes water" : "100 %\nalways water",
     },
     backgroundColor: "#555555",
     fontColor: "#ffffff",
@@ -832,7 +1042,8 @@ map.on("load", () => {
   map.on("data", () => {
     const layer = map.getLayer("JRC Water Occurrence");
     if (layer) {
-      const visible = map.getLayoutProperty("JRC Water Occurrence", "visibility") !== "none";
+      const visible =
+        map.getLayoutProperty("JRC Water Occurrence", "visibility") !== "none";
       if (visible) {
         waterOccurrenceColorbar.show();
       } else {
