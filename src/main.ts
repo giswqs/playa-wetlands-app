@@ -9,6 +9,7 @@ import "mapillary-js/dist/mapillary.css";
 import "maplibre-gl-lidar/style.css";
 import "maplibre-gl-usgs-lidar/style.css";
 import "maplibre-gl-components/style.css";
+import "maplibre-gl-time-slider/style.css";
 
 import maplibregl from "maplibre-gl";
 import * as pmtiles from "pmtiles";
@@ -32,6 +33,7 @@ import {
   UsgsLidarControl,
   UsgsLidarLayerAdapter,
 } from "maplibre-gl-usgs-lidar";
+import { TimeSliderControl } from "maplibre-gl-time-slider";
 
 // Get API keys from environment variables (Vite exposes them via import.meta.env)
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
@@ -119,6 +121,25 @@ map.on("load", () => {
     source: "naip-false-color",
     paint: {
       "raster-opacity": 1,
+    },
+    layout: {
+      visibility: "none",
+    },
+  });
+
+  // Add NAIP Layer placeholder (will be populated by time slider)
+  map.addSource("NAIP-raster", {
+    type: "raster",
+    tiles: [], // Empty initially, will be set by time slider
+    tileSize: 256,
+  });
+
+  map.addLayer({
+    id: "NAIP Layer",
+    type: "raster",
+    source: "NAIP-raster",
+    paint: {
+      "raster-opacity": 0.85,
     },
     layout: {
       visibility: "none",
@@ -1073,4 +1094,184 @@ map.on("load", () => {
     position: "bottom-right",
   });
   map.addControl(infoControl, "bottom-right");
+
+  // Add NAIP Time Slider
+  setupNAIPTimeSlider(map);
 });
+
+// NAIP Time Slider Setup
+function setupNAIPTimeSlider(map: maplibregl.Map) {
+  // Earth Engine tile request endpoint
+  const EE_TILE_ENDPOINT = "https://giswqs-ee-tile-request.hf.space/tile";
+
+  // Generate years from 2009 to 2023
+  const START_YEAR = 2009;
+  const END_YEAR = 2023;
+  const years = Array.from({ length: END_YEAR - START_YEAR + 1 }, (_, i) => START_YEAR + i);
+  const labels = years.map((year) => String(year));
+
+  // Cache for storing tile URLs
+  const tileUrlCache: Record<string, string> = {};
+
+  // Track persistent layers
+  let persistentLayerCounter = 0;
+
+  // Source and layer IDs
+  const RASTER_SOURCE_ID = "NAIP-raster";
+  const RASTER_LAYER_ID = "NAIP Layer";
+
+  /**
+   * Fetches tile URL from Earth Engine API for a given year
+   */
+  async function fetchTileUrl(year: number): Promise<string> {
+    const cacheKey = String(year);
+
+    // Return cached URL if available
+    if (tileUrlCache[cacheKey]) {
+      console.log(`Using cached tile URL for year ${year}`);
+      return tileUrlCache[cacheKey];
+    }
+
+    console.log(`Fetching tile URL for year ${year}...`);
+
+    const payload = {
+      asset_id: "USDA/NAIP/DOQQ",
+      start_date: `${year}-01-01`,
+      end_date: `${year}-12-31`,
+      vis_params: { bands: ["N", "R", "G"] },
+    };
+
+    try {
+      const response = await fetch(EE_TILE_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const tileUrl = data.tile_url;
+
+      // Cache the URL
+      tileUrlCache[cacheKey] = tileUrl;
+      console.log(`Tile URL for year ${year} cached successfully`);
+
+      return tileUrl;
+    } catch (error) {
+      console.error(`Error fetching tile URL for year ${year}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Prefetch tile URLs for all years
+   */
+  async function prefetchTileUrls(): Promise<void> {
+    console.log("Prefetching NAIP tile URLs for all years...");
+    const promises = years.map((year) =>
+      fetchTileUrl(year).catch((err) => {
+        console.error(`Failed to prefetch year ${year}:`, err);
+        return null;
+      })
+    );
+    await Promise.all(promises);
+    console.log("NAIP prefetching complete");
+  }
+
+  // Fetch initial tile URL and update NAIP layer (which already exists as placeholder)
+  fetchTileUrl(years[0])
+    .then((initialTileUrl) => {
+      // Update the existing raster source with initial tile URL
+      const source = map.getSource(RASTER_SOURCE_ID) as maplibregl.RasterTileSource;
+      if (source) {
+        source.setTiles([initialTileUrl]);
+        console.log("Updated NAIP Layer with initial tiles for year", years[0]);
+      }
+
+      // Create the time slider control
+      const timeSlider = new TimeSliderControl({
+        title: "NAIP Imagery",
+        labels: labels,
+        speed: 1500,
+        loop: true,
+        collapsed: true,
+        panelWidth: 320,
+        beforeId: "3DEP Hillshade",
+        onChange: async (index) => {
+          const year = years[index];
+          console.log(`Displaying NAIP imagery for year: ${year}`);
+
+          try {
+            // Fetch the tile URL for the selected year (will use cache if available)
+            const tileUrl = await fetchTileUrl(year);
+
+            // Update the raster source with the new tile URL
+            const source = map.getSource(RASTER_SOURCE_ID) as maplibregl.RasterTileSource;
+            if (source) {
+              source.setTiles([tileUrl]);
+            }
+          } catch (error) {
+            console.error(`Error loading imagery for year ${year}:`, error);
+            alert(`Failed to load imagery for year ${year}. Please try again.`);
+          }
+        },
+        onAddLayer: async (index, _label, beforeId) => {
+          const year = years[index];
+          console.log(`Adding persistent layer for year: ${year}`);
+
+          try {
+            // Fetch the tile URL for the selected year
+            const tileUrl = await fetchTileUrl(year);
+
+            // Create unique IDs for the persistent layer with year
+            persistentLayerCounter++;
+            const sourceId = `NAIP-source-${year}`;
+            const layerId = `NAIP Layer ${year}`;
+
+            // Add the source
+            map.addSource(sourceId, {
+              type: "raster",
+              tiles: [tileUrl],
+              tileSize: 256,
+            });
+
+            // Add the layer before the specified layer (from beforeId option)
+            map.addLayer(
+              {
+                id: layerId,
+                type: "raster",
+                source: sourceId,
+                paint: {
+                  "raster-opacity": 0.7,
+                },
+              },
+              beforeId || RASTER_LAYER_ID // Use beforeId from options, fallback to RASTER_LAYER_ID
+            );
+
+            console.log(`Added persistent layer for year ${year} before layer: ${beforeId || RASTER_LAYER_ID}`);
+          } catch (error) {
+            console.error(`Error adding persistent layer for year ${year}:`, error);
+            alert(`Failed to add layer for year ${year}. Please try again.`);
+          }
+        },
+      });
+
+      // Add the time slider control to the map
+      map.addControl(timeSlider, "top-right");
+
+      console.log("NAIP time slider control added to map");
+
+      // Prefetch tile URLs in the background
+      prefetchTileUrls().catch((err) => {
+        console.error("Error during prefetching:", err);
+      });
+    })
+    .catch((error) => {
+      console.error("Error initializing NAIP time slider:", error);
+    });
+}

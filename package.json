@@ -24,6 +24,7 @@
     "maplibre-gl-layer-control": "^0.12.0",
     "maplibre-gl-lidar": "^0.10.0",
     "maplibre-gl-streetview": "^0.2.0",
+    "maplibre-gl-time-slider": "^0.3.0",
     "maplibre-gl-usgs-lidar": "^0.6.1",
     "pmtiles": "^4.4.0",
     "shpjs": "^6.2.0"
