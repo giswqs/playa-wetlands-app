@@ -8,6 +8,7 @@ import "maplibre-gl-streetview/style.css";
 import "mapillary-js/dist/mapillary.css";
 import "maplibre-gl-lidar/style.css";
 import "maplibre-gl-usgs-lidar/style.css";
+import 'maplibre-gl-components/style.css';
 
 import maplibregl from "maplibre-gl";
 import * as pmtiles from "pmtiles";
@@ -16,7 +17,7 @@ import {
   type CustomLayerAdapter,
   type LayerState,
 } from "maplibre-gl-layer-control";
-import { Colorbar, HtmlControl, Legend, SearchControl, TerrainControl } from "maplibre-gl-components";
+import { Colorbar, HtmlControl, Legend, SearchControl, TerrainControl, ViewStateControl } from "maplibre-gl-components";
 import { StreetViewControl } from "maplibre-gl-streetview";
 // import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
 import { MapboxOverlay } from "@deck.gl/mapbox";
@@ -45,8 +46,8 @@ const BASE_MAP_STYLE =
 const map = new maplibregl.Map({
   container: "map",
   style: BASE_MAP_STYLE,
-  center: [0, 0],
-  zoom: 2,
+  center: [-100, 40],
+  zoom: 4,
   maxPitch: 85,
 });
 
@@ -162,78 +163,6 @@ map.on("load", () => {
     },
   });
 
-  // // Add a raster layer (using MapLibre demo tiles as example)
-  // map.addSource('raster-source', {
-  //   type: 'raster',
-  //   tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-  //   tileSize: 256,
-  //   attribution: '&copy; OpenStreetMap contributors'
-  // });
-
-  // map.addLayer({
-  //   id: 'OpenStreetMap',
-  //   type: 'raster',
-  //   source: 'raster-source',
-  //   paint: {
-  //     'raster-opacity': 1.0
-  //   },
-  //   layout: {
-  //     visibility: 'none'
-  //   },
-  // }); // Insert below countries layer
-
-  // Add PLJV boundaries
-  const pljvBoundary: GeoJSON.FeatureCollection = {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: {},
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              [-106.38806, 43.287453],
-              [-105.816892, 36.943581],
-              [-103.97158, 31.271802],
-              [-101.511165, 30.214278],
-              [-99.006814, 29.833794],
-              [-97.864478, 30.555461],
-              [-97.029695, 32.503102],
-              [-96.634271, 35.20327],
-              [-96.414591, 37.224041],
-              [-96.107039, 40.072029],
-              [-96.107039, 41.634177],
-              [-96.722143, 42.966724],
-              [-98.479582, 43.606499],
-              [-101.115741, 44.271017],
-              [-104.059452, 44.018743],
-              [-106.38806, 43.287453],
-            ],
-          ],
-        },
-      },
-    ],
-  };
-
-  map.addSource("pljv-boundaries", {
-    type: "geojson",
-    data: pljvBoundary,
-  });
-
-  map.addLayer({
-    id: "Playa Boundary",
-    type: "fill",
-    source: "pljv-boundaries",
-    paint: {
-      "fill-color": "transparent",
-      "fill-outline-color": "#000000",
-    },
-    layout: {
-      visibility: "none",
-    },
-  });
-
   // Add WBDHU8 (Watershed Boundary Dataset HUC8) from PMTiles
   map.addSource("wbdhu8", {
     type: "vector",
@@ -244,7 +173,7 @@ map.on("load", () => {
     id: "WBDHU8 Boundary",
     type: "fill",
     source: "wbdhu8",
-    "source-layer": "wbdhu8_5070__wbdhu8__wbd_national_gpkg__wbdhu8",
+    "source-layer": "WBDHU8",
     paint: {
       "fill-color": "transparent",
       "fill-outline-color": "#3388ff",
@@ -266,6 +195,93 @@ map.on("load", () => {
       "fill-color": "#8bc34a",
       "fill-opacity": 0.5,
     },
+    layout: {
+      visibility: "none",
+    },
+  });
+
+  // Add H3 NWI Count (hexagon grid) from PMTiles
+  map.addSource("h3-nwi-count", {
+    type: "vector",
+    url: "pmtiles://https://data.source.coop/giswqs/playa/h3_res5_nwi_count.pmtiles",
+  });
+
+  // Inferno colormap with logarithmic scale for better contrast
+  map.addLayer({
+    id: "H3 NWI Count",
+    type: "fill-extrusion",
+    source: "h3-nwi-count",
+    "source-layer": "h3_res5_nwi_count",
+    paint: {
+      "fill-extrusion-color": [
+        "interpolate",
+        ["linear"],
+        ["ln", ["+", ["get", "wetland_count"], 1]],
+        0, "#000004",
+        2, "#1b0c41",
+        4, "#4a0c6b",
+        6, "#781c6d",
+        7, "#a52c60",
+        8, "#cf4446",
+        9, "#ed6925",
+        10, "#fb9b06",
+        10.6, "#fcffa4",
+      ],
+      "fill-extrusion-height": [
+        "interpolate",
+        ["linear"],
+        ["get", "wetland_count"],
+        1, 100,
+        40000, 50000,
+      ],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85,
+    },
+    minzoom: 4.5,
+    maxzoom: 8,
+    layout: {
+      visibility: "visible",
+    },
+  });
+
+  // Add H3 NWI Acres (hexagon grid) from PMTiles
+  map.addSource("h3-nwi-acres", {
+    type: "vector",
+    url: "pmtiles://https://data.source.coop/giswqs/playa/h3_res5_nwi_acres.pmtiles",
+  });
+
+  // Inferno colormap with logarithmic scale for better contrast
+  map.addLayer({
+    id: "H3 NWI Acres",
+    type: "fill-extrusion",
+    source: "h3-nwi-acres",
+    "source-layer": "h3_res5_nwi_acres",
+    paint: {
+      "fill-extrusion-color": [
+        "interpolate",
+        ["linear"],
+        ["ln", ["+", ["get", "wetland_acres"], 1]],
+        0, "#000004",
+        2, "#1b0c41",
+        4, "#4a0c6b",
+        5, "#781c6d",
+        6, "#a52c60",
+        7, "#cf4446",
+        8, "#ed6925",
+        9, "#fb9b06",
+        10.3, "#fcffa4",
+      ],
+      "fill-extrusion-height": [
+        "interpolate",
+        ["linear"],
+        ["get", "wetland_acres"],
+        0, 100,
+        30000, 50000,
+      ],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85,
+    },
+    maxzoom: 8,
     layout: {
       visibility: "none",
     },
@@ -332,7 +348,7 @@ map.on("load", () => {
   });
 
   // Pickable layers with priority: Depressions/NWI first, WBDHU8 as fallback
-  const pickableLayers = ["Depressions 10m", "NWI Wetlands", "Easements", "WBDHU8 Boundary"];
+  const pickableLayers = ["Depressions 10m", "NWI Wetlands", "Easements", "H3 NWI Count", "H3 NWI Acres", "WBDHU8 Boundary"];
 
   function buildPopupHtml(layerId: string, props: Record<string, any>): string {
     switch (layerId) {
@@ -372,6 +388,14 @@ map.on("load", () => {
           County: ${props.County || "N/A"}<br/>
           Acres: ${props.CalcAcres ? Number(props.CalcAcres).toFixed(2) : "N/A"}<br/>
           Closing Date: ${props.ClosingDat || "N/A"}`;
+      case "H3 NWI Count":
+        return `
+          <strong>H3 Cell (Res 5)</strong><br/>
+          NWI Wetland Count: ${props.wetland_count ? Number(props.wetland_count).toLocaleString() : "N/A"}`;
+      case "H3 NWI Acres":
+        return `
+          <strong>H3 Cell (Res 5)</strong><br/>
+          NWI Wetland Acres: ${props.wetland_acres ? Number(props.wetland_acres).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "N/A"}`;
       case "WBDHU8 Boundary":
         return `
           <strong>${props.name || "N/A"}</strong><br/>
@@ -395,6 +419,9 @@ map.on("load", () => {
     const easeFeatures = map.queryRenderedFeatures(e.point, {
       layers: ["Easements"],
     });
+    const h3Features = map.queryRenderedFeatures(e.point, {
+      layers: ["H3 NWI Count"],
+    });
 
     const htmlParts: string[] = [];
     if (depFeatures.length > 0) {
@@ -408,8 +435,17 @@ map.on("load", () => {
     if (easeFeatures.length > 0) {
       htmlParts.push(buildPopupHtml("Easements", easeFeatures[0].properties));
     }
+    if (h3Features.length > 0) {
+      htmlParts.push(buildPopupHtml("H3 NWI Count", h3Features[0].properties));
+    }
+    const h3AcresFeatures = map.queryRenderedFeatures(e.point, {
+      layers: ["H3 NWI Acres"],
+    });
+    if (h3AcresFeatures.length > 0) {
+      htmlParts.push(buildPopupHtml("H3 NWI Acres", h3AcresFeatures[0].properties));
+    }
 
-    // Fall back to WBDHU8 only when neither Depressions nor NWI are present
+    // Fall back to WBDHU8 only when no higher-priority features are present
     if (htmlParts.length === 0) {
       const wbdFeatures = map.queryRenderedFeatures(e.point, {
         layers: ["WBDHU8 Boundary"],
@@ -437,15 +473,6 @@ map.on("load", () => {
     map.getCanvas().style.cursor = "";
   });
 
-  // Fit map to PLJV boundaries
-  const bounds = new maplibregl.LngLatBounds();
-  const geom = pljvBoundary.features[0].geometry;
-  if (geom.type === "Polygon") {
-    for (const coord of geom.coordinates[0]) {
-      bounds.extend(coord as [number, number]);
-    }
-  }
-  map.fitBounds(bounds, { padding: 20 });
 
   const deckLayers = new Map<string, any>();
   // deckLayers.set('Points', pointsLayer);
@@ -590,6 +617,21 @@ map.on("load", () => {
   });
 
   map.addControl(streetViewControl, "top-left");
+
+  // Add view state control - displays live map center, bounds, zoom, pitch, bearing
+  const viewStateControl = new ViewStateControl({
+    collapsed: true,
+    enableBBox: true,
+    precision: 4,
+  });
+  map.addControl(viewStateControl, 'top-left');
+
+  // Listen for bounding box draw events
+  viewStateControl.on('bboxdraw', (event) => {
+    if (event.bbox) {
+      console.log('Drawn bounding box:', event.bbox);
+    }
+  });
 
   searchControl.on("resultselect", (event) => {
     console.log(
