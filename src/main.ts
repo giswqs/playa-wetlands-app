@@ -134,9 +134,9 @@ map.on("load", () => {
     paint: {
       "raster-opacity": 1.0,
     },
-    minzoom: 11,
+    // minzoom: 11,
     layout: {
-      visibility: "visible",
+      visibility: "none",
     },
   });
 
@@ -251,6 +251,26 @@ map.on("load", () => {
     },
   });
 
+  // Add Easements from PMTiles
+  map.addSource("easements", {
+    type: "vector",
+    url: "pmtiles://https://data.source.coop/giswqs/playa/easements_12_11_2024.pmtiles",
+  });
+
+  map.addLayer({
+    id: "Easements",
+    type: "fill",
+    source: "easements",
+    "source-layer": "easements_12_11_2024",
+    paint: {
+      "fill-color": "#8bc34a",
+      "fill-opacity": 0.5,
+    },
+    layout: {
+      visibility: "none",
+    },
+  });
+
   // Add Depressions 10m from PMTiles
   map.addSource("depressions-10m", {
     type: "vector",
@@ -312,7 +332,7 @@ map.on("load", () => {
   });
 
   // Pickable layers with priority: Depressions/NWI first, WBDHU8 as fallback
-  const pickableLayers = ["Depressions 10m", "NWI Wetlands", "WBDHU8 Boundary"];
+  const pickableLayers = ["Depressions 10m", "NWI Wetlands", "Easements", "WBDHU8 Boundary"];
 
   function buildPopupHtml(layerId: string, props: Record<string, any>): string {
     switch (layerId) {
@@ -344,6 +364,14 @@ map.on("load", () => {
           Type: ${props.WETLAND_TYPE || "N/A"}<br/>
           Attribute: ${props.ATTRIBUTE || "N/A"}<br/>
           Acres: ${props.ACRES ? Number(props.ACRES).toFixed(2) : "N/A"}`;
+      case "Easements":
+        return `
+          <strong>Easement</strong><br/>
+          Program: ${props.Program || "N/A"}<br/>
+          State: ${props.State || "N/A"}<br/>
+          County: ${props.County || "N/A"}<br/>
+          Acres: ${props.CalcAcres ? Number(props.CalcAcres).toFixed(2) : "N/A"}<br/>
+          Closing Date: ${props.ClosingDat || "N/A"}`;
       case "WBDHU8 Boundary":
         return `
           <strong>${props.name || "N/A"}</strong><br/>
@@ -364,6 +392,9 @@ map.on("load", () => {
     const nwiFeatures = map.queryRenderedFeatures(e.point, {
       layers: ["NWI Wetlands"],
     });
+    const easeFeatures = map.queryRenderedFeatures(e.point, {
+      layers: ["Easements"],
+    });
 
     const htmlParts: string[] = [];
     if (depFeatures.length > 0) {
@@ -373,6 +404,9 @@ map.on("load", () => {
     }
     if (nwiFeatures.length > 0) {
       htmlParts.push(buildPopupHtml("NWI Wetlands", nwiFeatures[0].properties));
+    }
+    if (easeFeatures.length > 0) {
+      htmlParts.push(buildPopupHtml("Easements", easeFeatures[0].properties));
     }
 
     // Fall back to WBDHU8 only when neither Depressions nor NWI are present
