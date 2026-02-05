@@ -287,6 +287,92 @@ map.on("load", () => {
     },
   });
 
+  // Add H3 Depressions Count (hexagon grid) from PMTiles
+  map.addSource("h3-depressions-count", {
+    type: "vector",
+    url: "pmtiles://https://data.source.coop/giswqs/playa/h3_res5_depressions_count.pmtiles",
+  });
+
+  map.addLayer({
+    id: "H3 Depressions Count",
+    type: "fill-extrusion",
+    source: "h3-depressions-count",
+    "source-layer": "h3_res5_depressions_count",
+    paint: {
+      "fill-extrusion-color": [
+        "interpolate",
+        ["linear"],
+        ["ln", ["+", ["get", "depression_count"], 1]],
+        0, "#000004",
+        2, "#1b0c41",
+        3, "#4a0c6b",
+        4, "#781c6d",
+        5, "#a52c60",
+        6, "#cf4446",
+        7, "#ed6925",
+        8, "#fb9b06",
+        8.5, "#fcffa4",
+      ],
+      "fill-extrusion-height": [
+        "interpolate",
+        ["linear"],
+        ["get", "depression_count"],
+        1, 100,
+        5050, 50000,
+      ],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85,
+    },
+    minzoom: 4.5,
+    maxzoom: 8,
+    layout: {
+      visibility: "none",
+    },
+  });
+
+  // Add H3 Depressions Acres (hexagon grid) from PMTiles
+  map.addSource("h3-depressions-acres", {
+    type: "vector",
+    url: "pmtiles://https://data.source.coop/giswqs/playa/h3_res5_depressions_acres.pmtiles",
+  });
+
+  map.addLayer({
+    id: "H3 Depressions Acres",
+    type: "fill-extrusion",
+    source: "h3-depressions-acres",
+    "source-layer": "h3_res5_depressions_acres",
+    paint: {
+      "fill-extrusion-color": [
+        "interpolate",
+        ["linear"],
+        ["ln", ["+", ["get", "depression_acres"], 1]],
+        0, "#000004",
+        2, "#1b0c41",
+        4, "#4a0c6b",
+        5, "#781c6d",
+        6, "#a52c60",
+        7, "#cf4446",
+        8, "#ed6925",
+        9, "#fb9b06",
+        10.4, "#fcffa4",
+      ],
+      "fill-extrusion-height": [
+        "interpolate",
+        ["linear"],
+        ["get", "depression_acres"],
+        0, 100,
+        32000, 50000,
+      ],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85,
+    },
+    minzoom: 4.5,
+    maxzoom: 8,
+    layout: {
+      visibility: "none",
+    },
+  });
+
   // Add Depressions 10m from PMTiles
   map.addSource("depressions-10m", {
     type: "vector",
@@ -348,7 +434,7 @@ map.on("load", () => {
   });
 
   // Pickable layers with priority: Depressions/NWI first, WBDHU8 as fallback
-  const pickableLayers = ["Depressions 10m", "NWI Wetlands", "Easements", "H3 NWI Count", "H3 NWI Acres", "WBDHU8 Boundary"];
+  const pickableLayers = ["Depressions 10m", "NWI Wetlands", "Easements", "H3 NWI Count", "H3 NWI Acres", "H3 Depressions Count", "H3 Depressions Acres", "WBDHU8 Boundary"];
 
   function buildPopupHtml(layerId: string, props: Record<string, any>): string {
     switch (layerId) {
@@ -396,6 +482,14 @@ map.on("load", () => {
         return `
           <strong>H3 Cell (Res 5)</strong><br/>
           NWI Wetland Acres: ${props.wetland_acres ? Number(props.wetland_acres).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "N/A"}`;
+      case "H3 Depressions Count":
+        return `
+          <strong>H3 Cell (Res 5)</strong><br/>
+          Depression Count: ${props.depression_count ? Number(props.depression_count).toLocaleString() : "N/A"}`;
+      case "H3 Depressions Acres":
+        return `
+          <strong>H3 Cell (Res 5)</strong><br/>
+          Depression Acres: ${props.depression_acres ? Number(props.depression_acres).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "N/A"}`;
       case "WBDHU8 Boundary":
         return `
           <strong>${props.name || "N/A"}</strong><br/>
@@ -443,6 +537,18 @@ map.on("load", () => {
     });
     if (h3AcresFeatures.length > 0) {
       htmlParts.push(buildPopupHtml("H3 NWI Acres", h3AcresFeatures[0].properties));
+    }
+    const h3DepCountFeatures = map.queryRenderedFeatures(e.point, {
+      layers: ["H3 Depressions Count"],
+    });
+    if (h3DepCountFeatures.length > 0) {
+      htmlParts.push(buildPopupHtml("H3 Depressions Count", h3DepCountFeatures[0].properties));
+    }
+    const h3DepAcresFeatures = map.queryRenderedFeatures(e.point, {
+      layers: ["H3 Depressions Acres"],
+    });
+    if (h3DepAcresFeatures.length > 0) {
+      htmlParts.push(buildPopupHtml("H3 Depressions Acres", h3DepAcresFeatures[0].properties));
     }
 
     // Fall back to WBDHU8 only when no higher-priority features are present
