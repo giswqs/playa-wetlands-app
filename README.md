@@ -1,63 +1,37 @@
-# vite-maplibre-ts
+# Playa Wetlands App
 
-A template repository for building interactive web maps using [Vite](https://vitejs.dev/), [TypeScript](https://www.typescriptlang.org/), and [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/). This template includes geometry editing tools and layer control, with automatic deployment to GitHub Pages.
-
-[![Open in CodeSandbox](https://img.shields.io/badge/Open%20in-CodeSandbox-blue?logo=codesandbox)](https://codesandbox.io/p/github/opengeos/vite-maplibre-ts)
-[![Open in StackBlitz](https://img.shields.io/badge/Open%20in-StackBlitz-blue?logo=stackblitz)](https://stackblitz.com/github/opengeos/vite-maplibre-ts)
+An interactive web map for exploring playa wetlands, surface depressions, and watershed boundaries in the Playa region. Built with [Vite](https://vitejs.dev/), [TypeScript](https://www.typescriptlang.org/), and [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/).
 
 ## Live Demo
 
-[View the live demo](https://opengeos.github.io/vite-maplibre-ts/)
+[https://playa.gishub.org](https://playa.gishub.org)
 
 ## Features
 
-- **MapLibre GL JS** - Open-source map rendering library for vector and raster tiles
+- **Interactive Map** - Pan, zoom, and explore playa wetlands with satellite imagery
+- **Data Layers**
+  - WBDHU8 watershed boundaries (PMTiles)
+  - Surface depressions at 10m resolution (PMTiles)
+  - NWI wetlands styled by wetland type (PMTiles)
+  - JRC Global Surface Water Occurrence (1984-2021)
+  - 3DEP Hillshade Multidirectional (WMS)
+  - NAIP False Color Composite (WMS)
+  - Google Satellite basemap
+- **Layer Control** - Toggle visibility and adjust opacity of all layers
+- **Clickable Features** - Click depressions, NWI wetlands, or watershed boundaries to view attributes
+- **Street View** - Google Street View and Mapillary integration
+- **USGS 3DEP LiDAR** - Browse and visualize USGS LiDAR point clouds
+- **3D Terrain** - Toggle terrain with hillshade visualization
+- **Search** - Geocoding search to find places
+- **Legends & Colorbar** - NWI wetland type legend, depression legend, and water occurrence colorbar
 - **TypeScript** - Type-safe development with full IntelliSense support
-- **Vite** - Lightning-fast development server with hot module replacement (HMR)
-- **Geoman** - Draw, edit, and delete geometries on the map
-- **Geo Editor** - Advanced geometry editing tools including cut, split, union, and difference operations
-- **Layer Control** - Toggle visibility and adjust opacity of map layers
 - **GitHub Pages** - Automatic deployment on push to main branch
-- **Pre-commit Hooks** - Code quality checks with pre-commit
+- **Docker** - Containerized deployment support
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18 or higher recommended)
 - [npm](https://www.npmjs.com/) (included with Node.js)
-- [Git](https://git-scm.com/)
-
-## Use This Template
-
-### Option 1: GitHub Template (Recommended)
-
-1. Click the **"Use this template"** button at the top of this repository
-2. Choose **"Create a new repository"**
-3. Fill in your repository name and settings
-4. Clone your new repository:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-   cd YOUR_REPO_NAME
-   ```
-5. Update `vite.config.ts` to use your repository name:
-   ```typescript
-   base: process.env.GITHUB_ACTIONS ? "/YOUR_REPO_NAME/" : "/",
-   ```
-6. Install dependencies and start developing:
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-### Option 2: Manual Clone
-
-```bash
-git clone https://github.com/opengeos/vite-maplibre-ts.git my-map-project
-cd my-map-project
-rm -rf .git
-git init
-npm install
-npm run dev
-```
 
 ## Local Development
 
@@ -66,6 +40,17 @@ npm run dev
 ```bash
 npm install
 ```
+
+### Set Up Environment Variables
+
+Create a `.env` file for optional API keys:
+
+```env
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+VITE_MAPILLARY_ACCESS_TOKEN=your_mapillary_token
+```
+
+The app works without these keys, but Street View features require them.
 
 ### Start Development Server
 
@@ -81,186 +66,91 @@ This starts the Vite development server at `http://localhost:5173` with hot modu
 npm run build
 ```
 
-This compiles TypeScript and builds the production-ready files in the `dist/` directory.
-
 ### Preview Production Build
 
 ```bash
 npm run preview
 ```
 
-This serves the production build locally for testing before deployment.
+## Deployment
 
-## Deployment to GitHub Pages
+### GitHub Pages
 
-This template includes a GitHub Actions workflow that automatically deploys to GitHub Pages.
+The repository includes a GitHub Actions workflow that automatically deploys to GitHub Pages on push to `main`.
 
-### Setup
+1. Go to **Settings** > **Pages** and select **GitHub Actions** as the source
+2. Add API keys as repository secrets (optional):
+   - `VITE_GOOGLE_MAPS_API_KEY`
+   - `VITE_MAPILLARY_ACCESS_TOKEN`
+3. Push to `main` to trigger deployment
 
-1. **Enable GitHub Pages in your repository:**
-   - Go to **Settings** > **Pages**
-   - Under **Source**, select **GitHub Actions**
+### Docker
 
-2. **Push to main branch:**
-   - Any push to the `main` branch triggers the deployment workflow
-   - The workflow installs dependencies, builds the project, and deploys to GitHub Pages
-
-3. **Access your deployed site:**
-   - Your site will be available at `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`
-
-### Manual Deployment
-
-You can also trigger a deployment manually:
-1. Go to **Actions** > **Deploy to GitHub Pages**
-2. Click **Run workflow**
-
-### Custom Domain (Optional)
-
-To use a custom domain:
-
-1. Update `vite.config.ts`:
-   ```typescript
-   base: "/",
-   ```
-
-2. Create a `public/CNAME` file with your domain:
-   ```
-   your-domain.com
-   ```
-
-3. Configure DNS settings with your domain provider
-
-## Docker
-
-### Using Pre-built Image
-
-Pull and run the pre-built image from GitHub Container Registry:
+Build and run locally:
 
 ```bash
-docker run -p 8080:80 ghcr.io/opengeos/vite-maplibre-ts:latest
+docker build -t playa-wetlands-app .
+docker run -p 8080:80 playa-wetlands-app
 ```
 
-Then open http://localhost:8080/vite-maplibre-ts/ in your browser.
+Then open http://localhost:8080 in your browser.
 
-### Building Locally
-
-Build the Docker image:
+To pass API keys at build time:
 
 ```bash
-docker build -t vite-maplibre-ts .
+docker build \
+  --build-arg VITE_GOOGLE_MAPS_API_KEY=your_key \
+  --build-arg VITE_MAPILLARY_ACCESS_TOKEN=your_token \
+  -t playa-wetlands-app .
 ```
 
-Run the container:
+## Data Sources
 
-```bash
-docker run -p 8080:80 vite-maplibre-ts
-```
-
-### Docker Image Publishing
-
-The repository includes a GitHub Actions workflow (`.github/workflows/docker-publish.yml`) that automatically builds and publishes Docker images to GitHub Container Registry:
-
-- **On Release**: Images are built and pushed with version tags (e.g., `1.0.0`, `1.0`, `latest`)
-- **On Pull Request**: Images are built but not pushed (for testing)
-- **Manual Trigger**: Use the workflow dispatch to build manually
+| Layer | Source | Format |
+|-------|--------|--------|
+| WBDHU8 Boundaries | [Source Cooperative](https://source.coop/giswqs/playa) | PMTiles |
+| Surface Depressions 10m | [Source Cooperative](https://source.coop/giswqs/playa) | PMTiles |
+| NWI Wetlands | [Source Cooperative](https://source.coop/giswqs/playa) | PMTiles |
+| JRC Water Occurrence | [EC JRC/Google](https://global-surface-water.appspot.com/) | WMTS |
+| 3DEP Hillshade | [USGS National Map](https://elevation.nationalmap.gov/) | WMS |
+| NAIP False Color | [USGS National Map](https://imagery.nationalmap.gov/) | WMS |
 
 ## Project Structure
 
 ```
-vite-maplibre-ts/
-├── .github/
-│   └── workflows/
-│       ├── deploy.yml          # GitHub Pages deployment workflow
-│       └── docker-publish.yml  # Docker image build and publish workflow
-├── Dockerfile              # Docker build configuration
+playa-wetlands-app/
+├── .github/workflows/
+│   ├── deploy.yml            # GitHub Pages deployment
+│   └── docker-publish.yml    # Docker image build and publish
 ├── public/
-│   └── vite.svg            # Static assets (copied as-is to dist)
+│   └── CNAME                 # Custom domain configuration
 ├── src/
-│   ├── main.ts             # Application entry point
-│   ├── style.css           # Global styles
-│   └── typescript.svg      # TypeScript logo (bundled asset)
-├── index.html              # HTML entry point
-├── package.json            # Project dependencies and scripts
-├── tsconfig.json           # TypeScript configuration
-├── vite.config.ts          # Vite configuration
-└── README.md               # This file
+│   ├── main.ts               # Application entry point
+│   └── style.css             # Global styles
+├── .env                      # API keys (not committed)
+├── Dockerfile                # Docker build configuration
+├── index.html                # HTML entry point
+├── package.json              # Dependencies and scripts
+├── tsconfig.json             # TypeScript configuration
+└── vite.config.ts            # Vite configuration
 ```
-
-## Key Files
-
-| File | Description |
-|------|-------------|
-| `src/main.ts` | Main TypeScript file with MapLibre map initialization, controls, and layers |
-| `vite.config.ts` | Vite configuration including base path for GitHub Pages |
-| `.github/workflows/deploy.yml` | GitHub Actions workflow for automated deployment |
-
-## Customization
-
-### Change the Map Style
-
-Edit `src/main.ts` to use a different map style:
-
-```typescript
-const map = new maplibregl.Map({
-  container: "map",
-  style: "https://your-style-url.json", // Your custom style
-  center: [longitude, latitude],
-  zoom: 10,
-});
-```
-
-### Add New Layers
-
-Add GeoJSON or other data sources in `src/main.ts`:
-
-```typescript
-map.on("load", () => {
-  map.addSource("my-source", {
-    type: "geojson",
-    data: "https://example.com/data.geojson",
-  });
-
-  map.addLayer({
-    id: "my-layer",
-    type: "fill",
-    source: "my-source",
-    paint: {
-      "fill-color": "#088",
-      "fill-opacity": 0.5,
-    },
-  });
-});
-```
-
-## Available Scripts
-
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Build for production |
-| `npm run preview` | Preview production build |
 
 ## Dependencies
 
-### Runtime Dependencies
+### Runtime
 
-- [maplibre-gl](https://www.npmjs.com/package/maplibre-gl) - Map rendering library
-- [@geoman-io/maplibre-geoman-free](https://www.npmjs.com/package/@geoman-io/maplibre-geoman-free) - Geometry drawing/editing
-- [maplibre-gl-geo-editor](https://www.npmjs.com/package/maplibre-gl-geo-editor) - Advanced geometry tools
-- [maplibre-gl-layer-control](https://www.npmjs.com/package/maplibre-gl-layer-control) - Layer visibility control
-- [maplibre-gl-components](https://www.npmjs.com/package/maplibre-gl-components) - Components for maplibre-gl
+- [maplibre-gl](https://www.npmjs.com/package/maplibre-gl) - Map rendering
+- [pmtiles](https://www.npmjs.com/package/pmtiles) - PMTiles protocol support
+- [maplibre-gl-layer-control](https://www.npmjs.com/package/maplibre-gl-layer-control) - Layer visibility and opacity control
+- [maplibre-gl-components](https://www.npmjs.com/package/maplibre-gl-components) - Legend, colorbar, search, terrain, and HTML controls
+- [maplibre-gl-streetview](https://www.npmjs.com/package/maplibre-gl-streetview) - Street View integration
+- [maplibre-gl-usgs-lidar](https://www.npmjs.com/package/maplibre-gl-usgs-lidar) - USGS 3DEP LiDAR browser
+- [@deck.gl/mapbox](https://www.npmjs.com/package/@deck.gl/mapbox) - deck.gl integration for MapLibre
 
-### Development Dependencies
+### Development
 
 - [vite](https://www.npmjs.com/package/vite) - Build tool and dev server
 - [typescript](https://www.npmjs.com/package/typescript) - TypeScript compiler
-
-## Resources
-
-- [MapLibre GL JS Documentation](https://maplibre.org/maplibre-gl-js/docs/)
-- [Vite Documentation](https://vitejs.dev/guide/)
-- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
-- [GitHub Pages Documentation](https://docs.github.com/en/pages)
 
 ## Contributing
 
