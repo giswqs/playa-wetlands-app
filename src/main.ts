@@ -16,7 +16,7 @@ import {
   type CustomLayerAdapter,
   type LayerState,
 } from "maplibre-gl-layer-control";
-import { Colorbar, Legend, SearchControl, TerrainControl } from "maplibre-gl-components";
+import { Colorbar, HtmlControl, Legend, SearchControl, TerrainControl } from "maplibre-gl-components";
 import { StreetViewControl } from "maplibre-gl-streetview";
 // import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
 import { MapboxOverlay } from "@deck.gl/mapbox";
@@ -657,4 +657,26 @@ map.on("load", () => {
       }
     }
   });
+
+  const infoControl = new HtmlControl({
+    html: `
+      <div style="font-size:13px;line-height:1.5">
+        <strong>Playa Wetlands App</strong><br/>
+        An interactive map for exploring Playa wetlands,
+        surface depressions, and watershed boundaries
+        in the Playa region.<br/>
+        <a href="https://github.com/giswqs/playa-wetlands-app"
+           target="_blank" rel="noopener noreferrer"
+           style="color:#1976d2;text-decoration:none">
+           GitHub Repository
+        </a>
+      </div>
+    `,
+    collapsible: true,
+    collapsed: true,
+    title: "About",
+    maxWidth: 260,
+    position: "bottom-right",
+  });
+  map.addControl(infoControl, "bottom-right");
 });
