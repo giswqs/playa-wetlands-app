@@ -840,7 +840,7 @@ map.on("load", () => {
     panelMinWidth: 240,
     panelMaxWidth: 450,
     basemapStyleUrl: BASE_MAP_STYLE,
-    excludeLayers: [...DEFAULT_EXCLUDE_LAYERS],
+    excludeLayers: [...DEFAULT_EXCLUDE_LAYERS, "jrc-bbox-*"],
     customLayerAdapters: [deckAdapter],
   });
 
