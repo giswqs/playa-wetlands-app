@@ -24,6 +24,7 @@ import {
 import {
   addControlGrid,
   DEFAULT_EXCLUDE_LAYERS,
+  HtmlControl,
 } from "maplibre-gl-components";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { TimeSliderControl } from "maplibre-gl-time-slider";
@@ -852,6 +853,29 @@ map.on("load", () => {
   for (const adapter of controlGrid.getAdapters()) {
     layerControl.registerCustomAdapter(adapter);
   }
+
+  // Add info box with GitHub repo link
+  const infoControl = new HtmlControl({
+    html: `
+      <div style="font-size:13px;line-height:1.5">
+        <strong>Playa Wetlands App</strong><br/>
+        An interactive map for exploring Playa wetlands,
+        surface depressions, and watershed boundaries
+        in the Playa region.<br/>
+        <a href="https://github.com/giswqs/playa-wetlands-app"
+           target="_blank" rel="noopener noreferrer"
+           style="color:#1976d2;text-decoration:none">
+           GitHub Repository
+        </a>
+      </div>
+    `,
+    collapsible: true,
+    collapsed: true,
+    title: "About",
+    maxWidth: 260,
+    position: "bottom-right",
+  });
+  map.addControl(infoControl, "bottom-right");
 
   // Add NAIP Time Slider
   setupNAIPTimeSlider(map);

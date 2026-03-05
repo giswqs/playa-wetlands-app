@@ -495,6 +495,11 @@ export class JrcWaterStatsControl implements maplibregl.IControl {
     this.onMouseDown = (e: maplibregl.MapMouseEvent) => {
       e.preventDefault();
       this.drawStart = e.lngLat;
+      // Capture pointer so VS Code webview doesn't steal drag events
+      const canvas = this.map!.getCanvas();
+      if (e.originalEvent instanceof PointerEvent) {
+        canvas.setPointerCapture(e.originalEvent.pointerId);
+      }
     };
 
     this.onMouseMove = (e: maplibregl.MapMouseEvent) => {
@@ -512,6 +517,11 @@ export class JrcWaterStatsControl implements maplibregl.IControl {
 
     this.onMouseUp = (e: maplibregl.MapMouseEvent) => {
       if (!this.drawStart) return;
+      // Release pointer capture
+      const canvas = this.map!.getCanvas();
+      if (e.originalEvent instanceof PointerEvent) {
+        canvas.releasePointerCapture(e.originalEvent.pointerId);
+      }
       const west = Math.min(this.drawStart.lng, e.lngLat.lng);
       const south = Math.min(this.drawStart.lat, e.lngLat.lat);
       const east = Math.max(this.drawStart.lng, e.lngLat.lng);
