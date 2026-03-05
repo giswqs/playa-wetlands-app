@@ -10,6 +10,9 @@ import "maplibre-gl-lidar/style.css";
 import "maplibre-gl-usgs-lidar/style.css";
 import "maplibre-gl-components/style.css";
 import "maplibre-gl-time-slider/style.css";
+import "maplibre-gl-planetary-computer/style.css";
+import "maplibre-gl-splat/style.css";
+import "maplibre-gl-swipe/style.css";
 
 import maplibregl from "maplibre-gl";
 import * as pmtiles from "pmtiles";
@@ -19,32 +22,11 @@ import {
   type LayerState,
 } from "maplibre-gl-layer-control";
 import {
-  Colorbar,
-  HtmlControl,
-  Legend,
-  SearchControl,
-  TerrainControl,
-  ViewStateControl,
+  addControlGrid,
+  DEFAULT_EXCLUDE_LAYERS,
 } from "maplibre-gl-components";
-import { StreetViewControl } from "maplibre-gl-streetview";
-// import { LidarControl, LidarLayerAdapter } from 'maplibre-gl-lidar';
 import { MapboxOverlay } from "@deck.gl/mapbox";
-import {
-  UsgsLidarControl,
-  UsgsLidarLayerAdapter,
-} from "maplibre-gl-usgs-lidar";
 import { TimeSliderControl } from "maplibre-gl-time-slider";
-
-// Get API keys from environment variables (Vite exposes them via import.meta.env)
-const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
-const MAPILLARY_TOKEN = import.meta.env.VITE_MAPILLARY_ACCESS_TOKEN || "";
-
-// Log configuration status
-console.log(
-  "Google Street View:",
-  GOOGLE_API_KEY ? "Configured" : "Not configured",
-);
-console.log("Mapillary:", MAPILLARY_TOKEN ? "Configured" : "Not configured");
 
 // Register PMTiles protocol
 const pmtilesProtocol = new pmtiles.Protocol();
@@ -59,22 +41,6 @@ const map = new maplibregl.Map({
   zoom: 4,
   maxPitch: 85,
 });
-
-// Add navigation controls to top-right
-map.addControl(new maplibregl.NavigationControl(), "top-right");
-
-// Add fullscreen control to top-right (after navigation)
-map.addControl(new maplibregl.FullscreenControl(), "top-right");
-
-// Add globe control to top-right (after navigation)
-map.addControl(new maplibregl.GlobeControl(), "top-right");
-
-// Add terrain control - toggle 3D terrain using free AWS Terrarium tiles
-const terrainControl = new TerrainControl({
-  exaggeration: 1.0,
-  hillshade: true,
-});
-map.addControl(terrainControl, "top-right");
 
 map.on("load", () => {
   // Get all layers from the style
@@ -865,45 +831,6 @@ map.on("load", () => {
     getSymbolType: () => "circle",
   };
 
-  // // Add the LiDAR control (before layer control so adapter can be passed at construction)
-  // const lidarControl = new LidarControl({
-  //   title: "LiDAR Viewer",
-  //   collapsed: true,
-  //   pointSize: 2,
-  //   colorScheme: "elevation",
-  //   pickable: false,
-  // });
-
-  // lidarControl.on("load", (event) => {
-  //   console.log("Point cloud loaded:", event.pointCloud);
-  //   lidarControl.flyToPointCloud();
-  // });
-
-  // lidarControl.loadPointCloud(
-  //   "https://apps.opengeos.org/USGS_LPC_TX_CoastalRegion_2018_A18_stratmap18-50cm-2995201a1.copc.laz"
-  // );
-
-  // lidarControl.setZOffsetEnabled(true);
-  // lidarControl.setZOffset(0);
-
-  // const lidarLayerAdapter = new LidarLayerAdapter(lidarControl);
-  // Create the USGS LiDAR control (created first for adapter, added to map after layer control)
-  const usgsLidarControl = new UsgsLidarControl({
-    title: "USGS 3DEP LiDAR",
-    collapsed: true,
-    maxResults: 2500,
-    showFootprints: true,
-    autoZoomToResults: true,
-    lidarControlOptions: {
-      pointSize: 2,
-      colorScheme: "elevation",
-      copcLoadingMode: "dynamic",
-    },
-  });
-
-  // Create the USGS LiDAR layer adapter for layer control integration
-  const usgsLidarAdapter = new UsgsLidarLayerAdapter(usgsLidarControl);
-
   // Create the layer control with all adapters passed at construction
   const layerControl = new LayerControl({
     collapsed: true,
@@ -911,189 +838,19 @@ map.on("load", () => {
     panelMinWidth: 240,
     panelMaxWidth: 450,
     basemapStyleUrl: BASE_MAP_STYLE,
-    excludeLayers: ["Usgs*"],
-    customLayerAdapters: [deckAdapter, usgsLidarAdapter],
+    excludeLayers: [...DEFAULT_EXCLUDE_LAYERS],
+    customLayerAdapters: [deckAdapter],
   });
 
   map.addControl(layerControl, "top-right");
 
-  map.addControl(usgsLidarControl, "top-right");
-  // map.addControl(lidarControl, "top-right");
-  // Add search control
-  const searchControl = new SearchControl({
-    placeholder: "Search for a place...",
-    flyToZoom: 14,
-    showMarker: true,
-    markerColor: "#e74c3c",
-    collapsed: true,
-  });
-  map.addControl(searchControl, "top-left");
+  // Add a ControlGrid with all default controls
+  const controlGrid = addControlGrid(map, { basemapStyleUrl: BASE_MAP_STYLE });
 
-  let defaultProvider: "google" | "mapillary" = "google";
-  if (!GOOGLE_API_KEY && MAPILLARY_TOKEN) {
-    defaultProvider = "mapillary";
+  // Register data-layer adapters so COG, Zarr, PMTiles layers appear in the LayerControl
+  for (const adapter of controlGrid.getAdapters()) {
+    layerControl.registerCustomAdapter(adapter);
   }
-
-  const streetViewControl = new StreetViewControl({
-    title: "Street View",
-    collapsed: true,
-    panelWidth: 450,
-    panelHeight: 350,
-    defaultProvider: defaultProvider,
-    googleApiKey: GOOGLE_API_KEY,
-    mapillaryAccessToken: MAPILLARY_TOKEN,
-    showMarker: true,
-    clickToView: true,
-    maxSearchRadius: 200,
-    markerOptions: {
-      color: "#ff5722",
-      showDirection: false,
-      directionColor: "#1976d2",
-    },
-  });
-
-  map.addControl(streetViewControl, "top-left");
-
-  // Add view state control - displays live map center, bounds, zoom, pitch, bearing
-  const viewStateControl = new ViewStateControl({
-    collapsed: true,
-    enableBBox: true,
-    precision: 4,
-  });
-  map.addControl(viewStateControl, "top-left");
-
-  // Listen for bounding box draw events
-  viewStateControl.on("bboxdraw", (event) => {
-    if (event.bbox) {
-      console.log("Drawn bounding box:", event.bbox);
-    }
-  });
-
-  searchControl.on("resultselect", (event) => {
-    console.log(
-      "Selected place:",
-      event.result?.name,
-      "at",
-      event.result?.lng,
-      event.result?.lat,
-    );
-  });
-
-  const nwiLegend = new Legend({
-    title: "NWI Wetland Types",
-    items: [
-      {
-        label: "Freshwater Forested/Shrub",
-        color: "rgb(0, 136, 55)",
-        shape: "square",
-      },
-      {
-        label: "Freshwater Emergent",
-        color: "rgb(127, 195, 28)",
-        shape: "square",
-      },
-      {
-        label: "Freshwater Pond",
-        color: "rgb(104, 140, 192)",
-        shape: "square",
-      },
-      {
-        label: "Estuarine & Marine Wetland",
-        color: "rgb(102, 194, 165)",
-        shape: "square",
-      },
-      { label: "Riverine", color: "rgb(1, 144, 191)", shape: "square" },
-      { label: "Lake", color: "rgb(19, 0, 124)", shape: "square" },
-      {
-        label: "Estuarine & Marine Deep",
-        color: "rgb(0, 124, 136)",
-        shape: "square",
-      },
-      { label: "Other", color: "rgb(178, 134, 86)", shape: "square" },
-    ],
-    collapsible: true,
-    collapsed: false,
-    width: 220,
-    minzoom: minzoom,
-    position: "bottom-left",
-  });
-  map.addControl(nwiLegend, "bottom-left");
-
-  const depLegend = new Legend({
-    title: "Surface Depressions",
-    items: [{ label: "Depression (10-m)", color: "#ff7043", shape: "square" }],
-    collapsible: true,
-    collapsed: false,
-    width: 220,
-    minzoom: minzoom,
-    position: "bottom-left",
-  });
-  map.addControl(depLegend, "bottom-left");
-
-  const waterOccurrenceColorbar = new Colorbar({
-    label: "Water Occurrence (1984 – 2021)",
-    vmin: 0,
-    vmax: 100,
-    colorStops: [
-      { position: 0, color: "#ffffff" },
-      { position: 0.25, color: "#e0a0e0" },
-      { position: 0.5, color: "#c040c0" },
-      { position: 0.75, color: "#8000bf" },
-      { position: 1, color: "#0000ff" },
-    ],
-    orientation: "horizontal",
-    barLength: 250,
-    barThickness: 18,
-    ticks: {
-      values: [0, 100],
-      format: (v: number) =>
-        v === 0 ? "> 0 %\nsometimes water" : "100 %\nalways water",
-    },
-    backgroundColor: "#555555",
-    fontColor: "#ffffff",
-    fontSize: 12,
-    padding: 12,
-    borderRadius: 4,
-    position: "bottom-right",
-    visible: false,
-  });
-  map.addControl(waterOccurrenceColorbar, "bottom-right");
-
-  // Show/hide colorbar based on JRC Water Occurrence layer visibility
-  map.on("data", () => {
-    const layer = map.getLayer("JRC Water Occurrence");
-    if (layer) {
-      const visible =
-        map.getLayoutProperty("JRC Water Occurrence", "visibility") !== "none";
-      if (visible) {
-        waterOccurrenceColorbar.show();
-      } else {
-        waterOccurrenceColorbar.hide();
-      }
-    }
-  });
-
-  const infoControl = new HtmlControl({
-    html: `
-      <div style="font-size:13px;line-height:1.5">
-        <strong>Playa Wetlands App</strong><br/>
-        An interactive map for exploring Playa wetlands,
-        surface depressions, and watershed boundaries
-        in the Playa region.<br/>
-        <a href="https://github.com/giswqs/playa-wetlands-app"
-           target="_blank" rel="noopener noreferrer"
-           style="color:#1976d2;text-decoration:none">
-           GitHub Repository
-        </a>
-      </div>
-    `,
-    collapsible: true,
-    collapsed: true,
-    title: "About",
-    maxWidth: 260,
-    position: "bottom-right",
-  });
-  map.addControl(infoControl, "bottom-right");
 
   // Add NAIP Time Slider
   setupNAIPTimeSlider(map);
