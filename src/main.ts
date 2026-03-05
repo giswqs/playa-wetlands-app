@@ -27,6 +27,7 @@ import {
 } from "maplibre-gl-components";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { TimeSliderControl } from "maplibre-gl-time-slider";
+import { JrcWaterStatsControl } from "./jrc-water-stats";
 
 // Register PMTiles protocol
 const pmtilesProtocol = new pmtiles.Protocol();
@@ -854,6 +855,9 @@ map.on("load", () => {
 
   // Add NAIP Time Slider
   setupNAIPTimeSlider(map);
+
+  // Add JRC Water Statistics control
+  map.addControl(new JrcWaterStatsControl({ collapsed: true }), "top-right");
 });
 
 // NAIP Time Slider Setup

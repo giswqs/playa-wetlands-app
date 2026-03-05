@@ -3,3 +3,300 @@ html, body, #map {
   width: 100%;
   margin: 0;
 }
+
+/* JRC Water Stats — Icon button */
+.jrc-water-stats-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  color: #333;
+}
+
+.jrc-water-stats-icon-btn:hover {
+  background: #f0f0f0;
+}
+
+/* JRC Water Stats — Floating panel */
+.jrc-water-stats-panel {
+  position: absolute;
+  top: 0;
+  right: 40px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  width: 320px;
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.jrc-water-stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  font-weight: 600;
+  border-bottom: 1px solid #eee;
+}
+
+.jrc-water-stats-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #666;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.jrc-water-stats-close:hover {
+  color: #000;
+}
+
+.jrc-water-stats-body {
+  padding: 8px 10px;
+}
+
+/* Dual-range month slider */
+.jrc-water-stats-range-wrapper {
+  margin-bottom: 8px;
+}
+
+.jrc-water-stats-range-title {
+  font-size: 11px;
+  color: #666;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.jrc-water-stats-range-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.jrc-water-stats-range-track {
+  position: relative;
+  height: 6px;
+  background: #ddd;
+  border-radius: 3px;
+  margin: 0 7px;
+}
+
+.jrc-water-stats-range-fill {
+  position: absolute;
+  height: 100%;
+  background: #4264fb;
+  border-radius: 3px;
+  top: 0;
+}
+
+.jrc-water-stats-range-thumb {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border: 2px solid #4264fb;
+  border-radius: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  z-index: 2;
+}
+
+.jrc-water-stats-range-thumb:active {
+  cursor: grabbing;
+  background: #4264fb;
+}
+
+.jrc-water-stats-range-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 3px 0;
+  font-size: 9px;
+  color: #999;
+}
+
+/* Form fields */
+.jrc-water-stats-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.jrc-water-stats-field label {
+  font-size: 11px;
+  color: #666;
+}
+
+.jrc-water-stats-field input {
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Buttons */
+.jrc-water-stats-buttons {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.jrc-water-stats-panel .jrc-water-stats-buttons button {
+  flex: 1;
+  width: auto;
+  height: auto;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background-color: #4a90d9;
+  border: 1px solid #3a7bc8;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.maplibregl-ctrl .jrc-water-stats-panel .jrc-water-stats-buttons button:not(:disabled):hover {
+  background-color: #3a7bc8;
+  border-color: #2a6bb8;
+}
+
+.maplibregl-ctrl .jrc-water-stats-panel .jrc-water-stats-buttons button:not(:disabled):active {
+  background-color: #2a6bb8;
+}
+
+.jrc-water-stats-panel .jrc-water-stats-buttons button:disabled {
+  background-color: #8bb9e5;
+  color: #fff;
+  border-color: #7aa8d4;
+  cursor: not-allowed;
+}
+
+/* Status text */
+.jrc-water-stats-bbox-status {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+
+.jrc-water-stats-status {
+  font-size: 12px;
+  color: #c00;
+  margin-bottom: 6px;
+}
+
+/* Charts */
+.jrc-water-stats-chart-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #444;
+  margin: 6px 0 2px;
+}
+
+.jrc-water-stats-chart {
+  height: 180px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  transition: border-color 0.15s;
+}
+
+.jrc-water-stats-chart:hover {
+  border-color: #ccc;
+}
+
+.jrc-water-stats-stats {
+  font-size: 11px;
+  color: #444;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+/* Chart popup overlay */
+.jrc-chart-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.jrc-chart-popup {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  width: min(92vw, 1100px);
+  height: min(90vh, 450px);
+  display: flex;
+  flex-direction: column;
+}
+
+.jrc-chart-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.jrc-chart-popup-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #666;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.jrc-chart-popup-close:hover {
+  color: #000;
+}
+
+.jrc-chart-popup-canvas {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+}
+
+.jrc-chart-popup-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 12px;
+  justify-content: flex-end;
+}
+
+.jrc-chart-popup-actions button {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background-color: #2563eb;
+  border: 1px solid #1d4ed8;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.jrc-chart-popup-actions button:hover {
+  background-color: #1d4ed8;
+}
