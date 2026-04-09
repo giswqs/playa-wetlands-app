@@ -13,12 +13,18 @@ An interactive web map for exploring playa wetlands, surface depressions, and wa
   - WBDHU8 watershed boundaries (PMTiles)
   - Surface depressions at 10m resolution (PMTiles)
   - NWI wetlands styled by wetland type (PMTiles)
+  - Conservation easements (PMTiles)
+  - H3 hexagonal aggregation layers for NWI wetland and depression count/acres (PMTiles)
   - JRC Global Surface Water Occurrence (1984-2021)
   - 3DEP Hillshade Multidirectional (WMS)
   - NAIP False Color Composite (WMS)
   - Google Satellite basemap
 - **Layer Control** - Toggle visibility and adjust opacity of all layers
-- **Clickable Features** - Click depressions, NWI wetlands, or watershed boundaries to view attributes
+- **Clickable Features** - Click depressions, NWI wetlands, easements, H3 hexagons, or watershed boundaries to view attributes
+- **NAIP Time Slider** - Browse historical NAIP aerial imagery (2009-2023) with year slider, multi-year comparison, and background prefetching
+- **JRC Water Statistics** - Draw a bounding box to analyze water occurrence; includes monthly water area charts, occurrence distribution histograms, summary statistics, chart download (PNG), and data export (CSV)
+- **H3 3D Visualization** - 3D extruded hexagon grids showing wetland and depression density using deck.gl with logarithmic color mapping
+- **Drawing Tools** - Geoman-based geometry drawing and editing tools for on-map annotations
 - **Street View** - Google Street View and Mapillary integration
 - **USGS 3DEP LiDAR** - Browse and visualize USGS LiDAR point clouds
 - **3D Terrain** - Toggle terrain with hillshade visualization
@@ -111,8 +117,11 @@ docker build \
 | WBDHU8 Boundaries | [Source Cooperative](https://source.coop/giswqs/playa) | PMTiles |
 | Surface Depressions 10m | [Source Cooperative](https://source.coop/giswqs/playa) | PMTiles |
 | NWI Wetlands | [Source Cooperative](https://source.coop/giswqs/playa) | PMTiles |
+| Easements | [Source Cooperative](https://source.coop/giswqs/playa) | PMTiles |
+| H3 Aggregated Data | [Source Cooperative](https://source.coop/giswqs/playa) | PMTiles |
 | JRC Water Occurrence | [EC JRC/Google](https://global-surface-water.appspot.com/) | WMTS |
 | 3DEP Hillshade | [USGS National Map](https://elevation.nationalmap.gov/) | WMS |
+| NAIP Imagery | USDA via Earth Engine | Dynamic Tiles |
 | NAIP False Color | [USGS National Map](https://imagery.nationalmap.gov/) | WMS |
 
 ## Project Structure
@@ -126,6 +135,7 @@ playa-wetlands-app/
 │   └── CNAME                 # Custom domain configuration
 ├── src/
 │   ├── main.ts               # Application entry point
+│   ├── jrc-water-stats.ts    # JRC Water Statistics control
 │   └── style.css             # Global styles
 ├── .env                      # API keys (not committed)
 ├── Dockerfile                # Docker build configuration
@@ -145,7 +155,9 @@ playa-wetlands-app/
 - [maplibre-gl-components](https://www.npmjs.com/package/maplibre-gl-components) - Legend, colorbar, search, terrain, and HTML controls
 - [maplibre-gl-streetview](https://www.npmjs.com/package/maplibre-gl-streetview) - Street View integration
 - [maplibre-gl-usgs-lidar](https://www.npmjs.com/package/maplibre-gl-usgs-lidar) - USGS 3DEP LiDAR browser
-- [@deck.gl/mapbox](https://www.npmjs.com/package/@deck.gl/mapbox) - deck.gl integration for MapLibre
+- [maplibre-gl-geo-editor](https://www.npmjs.com/package/maplibre-gl-geo-editor) - Geometry editing
+- [@geoman-io/maplibre-geoman-free](https://www.npmjs.com/package/@geoman-io/maplibre-geoman-free) - Drawing and geometry editing tools
+- [@deck.gl/core](https://www.npmjs.com/package/@deck.gl/core), [@deck.gl/layers](https://www.npmjs.com/package/@deck.gl/layers), [@deck.gl/mapbox](https://www.npmjs.com/package/@deck.gl/mapbox) - 3D visualization and deck.gl integration
 
 ### Development
 
